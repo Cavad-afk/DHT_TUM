@@ -28,6 +28,8 @@ fun main(args: Array<String>) {
         val selfClient = Client(InetAddress.getLocalHost(), server.port)
         selfClient.connect()
 
+        Janitor(server, selfClient).start()
+
         var line: String?
 
         // let's talk with user
@@ -128,8 +130,8 @@ fun main(args: Array<String>) {
 
                                 Logger.i("Here is your key: ${key.toBase64()}. Attempting saving.")
 
-                                val dhtPut = DhtPut(15, 15, key, value)
-                                selfClient.send(dhtPut, { true }, 0).await()
+                                val dhtPut = DhtPut(DEFAULT_TTL, DEFAULT_REPLICATION, key, value)
+                                selfClient.send(dhtPut)
                             }
                         }
                         "get" -> {
@@ -173,7 +175,6 @@ fun main(args: Array<String>) {
         }
     }
 }
-
 
 fun printHelp() {
     printPingHelp()
