@@ -22,9 +22,11 @@ class Server(private val port: Int) {
 
         val serverSocket = ServerSocket(port)
 
-        while (true) {
-            serverSocket.accept()?.let {
-                handleClient(it)
+        async {
+            while (true) {
+                serverSocket.accept()?.let {
+                    handleClient(it)
+                }
             }
         }
     }
