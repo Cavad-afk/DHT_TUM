@@ -4,12 +4,14 @@ import java.net.InetAddress
 import java.nio.charset.Charset
 import java.util.*
 
-open class Peer(val id: ByteArray, val ip: InetAddress, val port: Int) {
+class PeerHolder(id: ByteArray, ip: InetAddress, port: Int, val firstSeen: Long, var lastSeen: Long) : Peer(id, ip, port), Comparable<PeerHolder> {
+    override fun compareTo(other: PeerHolder) = (lastSeen - firstSeen).compareTo(other.lastSeen - other.firstSeen)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as Peer
+        other as PeerHolder
 
         if (!Arrays.equals(id, other.id)) return false
         if (ip != other.ip) return false
@@ -26,6 +28,6 @@ open class Peer(val id: ByteArray, val ip: InetAddress, val port: Int) {
     }
 
     override fun toString(): String {
-        return "Peer(id=${Base64.getEncoder().encode(id).toString(Charset.defaultCharset())}, ip=$ip, port=$port)"
+        return "PeerHolder(id=${Base64.getEncoder().encode(id).toString(Charset.defaultCharset())}, ip=$ip, port=$port, firstSeen=$firstSeen, lastSeen=$lastSeen)"
     }
 }
