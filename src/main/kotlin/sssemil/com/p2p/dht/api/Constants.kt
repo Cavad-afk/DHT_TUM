@@ -1,5 +1,7 @@
 package sssemil.com.p2p.dht.api
 
+import sssemil.com.p2p.dht.Janitor
+
 internal const val DHT_PUT = 650.toShort()
 internal const val DHT_GET = 651.toShort()
 internal const val DHT_SUCCESS = 652.toShort()
@@ -18,5 +20,7 @@ internal const val TOLERANCE = 15 * 8 // distance
 internal const val BUCKETS = 20
 internal const val GRAB_SIZE = 3
 
+internal const val DEFAULT_TTL = Janitor.DAY.toShort()
+internal const val DEFAULT_REPLICATION = 5.toByte()
 internal const val DEFAULT_DELAY = 10000 // 5s
 internal const val PING_DELAY = 5000 // 5s
