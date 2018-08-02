@@ -18,4 +18,5 @@ internal const val KEY_LENGTH = 16 // bytes
 internal const val TOLERANCE = 15 // bytes
 internal const val BUCKETS = 20
 
+internal const val DEFAULT_DELAY = 10000 // 5s
 internal const val PING_DELAY = 5000 // 5s
