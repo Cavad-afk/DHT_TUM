@@ -11,8 +11,13 @@ import java.util.*
 fun generateId(): ByteArray {
     val random = Random()
 
-    var id = ByteArray(KEY_LENGTH)
+    val id = ByteArray(KEY_LENGTH)
     random.nextBytes(id)
 
     return DigestUtils.md5(id)
 }
+
+/**
+ * Use it to generate key for data
+ */
+fun generateKey(data: ByteArray) = DigestUtils.md5(data)
