@@ -105,17 +105,15 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
         }
     }
 
-    fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {
+    fun send(dhtMessage: DhtMessage) {
         outToServer.write(dhtMessage.generate())
         outToServer.flush()
+    }
 
+    fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {
+        send(dhtMessage)
         return@async responses.waitFor(filter, maxDelay).await()
     }
 
-    fun send(dhtObj: DhtObj, maxDelay: Int) = async {
-        outToServer.write(dhtObj.generate())
-        outToServer.flush()
-
-        return@async responses.waitFor({ it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay).await()
-    }
+    fun send(dhtObj: DhtObj, maxDelay: Int) = send(dhtObj, { it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay)
 }
