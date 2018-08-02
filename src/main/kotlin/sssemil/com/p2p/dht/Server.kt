@@ -7,7 +7,6 @@ import sssemil.com.p2p.dht.api.model.Ping
 import sssemil.com.p2p.dht.api.model.Pong
 import sssemil.com.p2p.dht.util.Logger
 import sssemil.com.p2p.dht.util.isAlive
-import sssemil.com.p2p.dht.util.writeShort
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ServerSocket
@@ -19,6 +18,7 @@ class Server(private val port: Int) {
 
     fun start() = async {
         Logger.i("Number of workers: $workersNumber")
+        Logger.i("Port number: $port")
 
         val serverSocket = ServerSocket(port)
 
