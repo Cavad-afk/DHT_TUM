@@ -1,13 +1,12 @@
 package sssemil.com.p2p.dht.api
 
 import com.google.gson.Gson
-import sssemil.com.p2p.dht.api.model.Ping
-import sssemil.com.p2p.dht.api.model.Pong
+import sssemil.com.p2p.dht.api.model.*
 import sssemil.com.p2p.dht.util.toBytes
 import java.io.DataInputStream
 
 
-data class DhtObj(val code: Int, val obj: Any) : DhtMessage {
+data class DhtObj(val code: Int, val obj: TokenModel) : DhtMessage {
 
     override fun generate(): ByteArray {
         val gson = Gson()
@@ -35,15 +34,19 @@ data class DhtObj(val code: Int, val obj: Any) : DhtMessage {
             val objCode = dataInputStream.readInt()
 
             val objClass = when (objCode) {
-                DHT_PING -> Ping::class.java
-                DHT_PONG -> Pong::class.java
-                else -> Any::class.java
+                OBJ_PING -> Ping::class.java
+                OBJ_PONG -> Pong::class.java
+                OBJ_PUT -> Put::class.java
+                OBJ_FIND_VALUE -> FindValue::class.java
+                OBJ_FOUND_VALUE -> FoundValue::class.java
+                OBJ_FOUND_PEERS -> FoundPeers::class.java
+                else -> TokenModel::class.java
             }
 
             val jsonBytes = ByteArray(dataInputStream.available())
             dataInputStream.read(jsonBytes)
 
-            return DhtObj(objCode, gson.fromJson<Any>(String(jsonBytes), objClass))
+            return DhtObj(objCode, gson.fromJson<TokenModel>(String(jsonBytes), objClass))
         }
     }
 }
