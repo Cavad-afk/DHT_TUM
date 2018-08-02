@@ -20,14 +20,12 @@ fun main(args: Array<String>) {
     }
 
     val random = Random()
-    val port = 2000 + random.nextInt(100)
-    val thisPeerId = generateId()
 
     runBlocking {
-        val server = Server(port, thisPeerId)
+        val server = Server(2000 + random.nextInt(100), generateId())
         server.start().await()
 
-        val selfClient = Client(InetAddress.getLocalHost(), port)
+        val selfClient = Client(InetAddress.getLocalHost(), server.port)
         selfClient.connect()
 
         var line: String?
@@ -59,7 +57,7 @@ fun main(args: Array<String>) {
                                     if (!client.connect().await()) {
                                         Logger.i("Connection failed!")
                                     } else {
-                                        Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(thisPeerId).await()}")
+                                        Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(server.thisPeerId, server.port).await()}")
                                     }
                                 } catch (e: NumberFormatException) {
                                     Logger.e("Invalid port number!")
@@ -91,7 +89,7 @@ fun main(args: Array<String>) {
                                     if (!client.connect().await()) {
                                         Logger.i("Connection failed!")
                                     } else {
-                                        val pong = client.ping(thisPeerId).await() as DhtObj?
+                                        val pong = client.ping(server.thisPeerId, server.port).await() as DhtObj?
                                         Logger.i("ping ${peerIp.hostAddress} $peerPort : $pong")
 
                                         pong?.let {
@@ -135,10 +133,10 @@ fun main(args: Array<String>) {
                             }
                         }
                         "get" -> {
-                            if (parts.size == 1) {
+                            if (parts.size == 2) {
                                 val key = parts[1]
 
-                                Logger.i("Get key: $key. Searching...")
+                                Logger.i("FindValue key: $key. Searching...")
 
                                 val dhtGet = DhtGet(Base64.getDecoder().decode(key))
 
@@ -148,7 +146,22 @@ fun main(args: Array<String>) {
                                         },
                                         DEFAULT_DELAY).await()
 
-                                Logger.i("Get response: $response")
+                                Logger.i("FindValue response: $response")
+                            }
+                        }
+                        "port" -> {
+                            if (parts.size == 2) {
+                                try {
+                                    val newPort = parts[1].toInt()
+
+                                    server.port = newPort
+                                    server.stop().await()
+                                    server.start().await()
+                                } catch (e: NumberFormatException) {
+                                    Logger.e(e.localizedMessage)
+                                }
+                            } else {
+                                Logger.i("Current port: $server.port")
                             }
                         }
                         "exit" -> {

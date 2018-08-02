@@ -4,7 +4,7 @@ import java.util.*
 
 class SortedList<T : Comparable<T>?>(val maxSize: Int) : List<T> {
 
-    private val list = LinkedList<T>()
+    internal val list = LinkedList<T>()
 
     override val size: Int
         get() = list.size
