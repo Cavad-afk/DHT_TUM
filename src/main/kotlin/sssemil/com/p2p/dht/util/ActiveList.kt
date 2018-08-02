@@ -24,11 +24,11 @@ class ActiveList<T> : List<T> {
     fun waitFor(filter: (T) -> Boolean, maxDelay: Int) = async {
         val startTime = System.currentTimeMillis()
 
-        var gotIt: Boolean? = null
+        var gotIt: T? = null
 
         val listener: (T) -> (Unit) = {
             if (filter.invoke(it)) {
-                gotIt = true
+                gotIt = it
             }
         }
 
@@ -44,7 +44,7 @@ class ActiveList<T> : List<T> {
             listeners.remove(listener)
         }
 
-        return@async gotIt == true
+        return@async gotIt
     }
 
     override fun contains(element: T) = list.contains(element)
