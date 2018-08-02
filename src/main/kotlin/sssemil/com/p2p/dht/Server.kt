@@ -5,18 +5,22 @@ import kotlinx.coroutines.experimental.delay
 import sssemil.com.p2p.dht.api.*
 import sssemil.com.p2p.dht.api.model.Ping
 import sssemil.com.p2p.dht.api.model.Pong
+import sssemil.com.p2p.dht.util.IdKeyUtils
 import sssemil.com.p2p.dht.util.Logger
+import sssemil.com.p2p.dht.util.SortedList
 import sssemil.com.p2p.dht.util.isAlive
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.nio.charset.Charset
+import java.util.*
 
-class Server(private val port: Int, val thisPeerId: ByteArray) {
+class Server(private val port: Int, private val thisPeerId: ByteArray) {
 
     private var workersNumber = Runtime.getRuntime().availableProcessors()
 
-    private val peersStorage = Array<Array<Peer?>>(KEY_LENGTH) { arrayOfNulls(BUCKETS) };
+    val peersStorage = Array(KEY_LENGTH * 8) { SortedList<PeerHolder>(BUCKETS) }
 
     init {
         if (thisPeerId.size != KEY_LENGTH) throw RuntimeException("Peer ID has to be this long : $KEY_LENGTH!")
@@ -25,6 +29,7 @@ class Server(private val port: Int, val thisPeerId: ByteArray) {
     fun start() = async {
         Logger.i("Number of workers: $workersNumber")
         Logger.i("Port number: $port")
+        Logger.i("ID: ${Base64.getEncoder().encode(thisPeerId).toString(Charset.defaultCharset())}")
 
         val serverSocket = ServerSocket(port)
 
@@ -52,9 +57,9 @@ class Server(private val port: Int, val thisPeerId: ByteArray) {
 
                         Logger.i("[${socket.inetAddress}][DHT_PUT] DhtPut: $dhtPut")
 
-                        Storage.store(dhtPut.key, dhtPut.value)
+                        Storage.store(dhtPut.key, dhtPut.value, dhtPut.ttl)
 
-                        //TODO send it to reserves
+                        val distance = IdKeyUtils.distance(dhtPut.key, thisPeerId)
                     }
                     DHT_GET -> {
                         val dhtGet = DhtGet.parse(inFromClient)
@@ -94,7 +99,7 @@ class Server(private val port: Int, val thisPeerId: ByteArray) {
 
                 Logger.i("[${connectionSocket.inetAddress}][DHT_PING] $ping")
 
-                val pong = Pong(ping.token)
+                val pong = Pong(ping.token, thisPeerId)
 
                 Logger.i("[DHT_PONG] sending: pong: $pong")
 
@@ -121,6 +126,15 @@ class Server(private val port: Int, val thisPeerId: ByteArray) {
 
         outToClient.write(dhtSuccess.generate())
         outToClient.flush()
+    }
+
+    fun addPeer(peer: Peer) {
+        val distance = IdKeyUtils.distance(peer.id, thisPeerId)
+
+        Logger.i("Add peer $peer at $distance")
+
+        peersStorage[distance].add(PeerHolder(peer.id, peer.ip, peer.port,
+                System.currentTimeMillis(), System.currentTimeMillis()))
     }
 
     companion object {
