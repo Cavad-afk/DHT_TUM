@@ -4,7 +4,7 @@ import sssemil.com.p2p.dht.util.toBytes
 import java.io.DataInputStream
 import java.util.*
 
-class DhtPut(val ttl: Short, val replicationsLeft: Byte, val key: ByteArray, val value: ByteArray) : DhtMessage {
+class DhtSuccess(val key: ByteArray, val value: ByteArray) : DhtMessage {
 
     init {
         if (key.size != KEY_LENGTH) {
@@ -13,19 +13,13 @@ class DhtPut(val ttl: Short, val replicationsLeft: Byte, val key: ByteArray, val
     }
 
     override fun generate(): ByteArray {
-        val sizeInBytes: Short = (8 + KEY_LENGTH + value.size).toShort()
+        val sizeInBytes: Short = (4 + KEY_LENGTH + value.size).toShort()
         val byteArray = ByteArray(sizeInBytes.toInt())
         var index = 0
 
         sizeInBytes.toBytes().map { byteArray[index++] = it }
 
-        DHT_PUT.toBytes().map { byteArray[index++] = it }
-
-        ttl.toBytes().map { byteArray[index++] = it }
-
-        byteArray[index++] = replicationsLeft
-
-        index++ //reserved
+        DHT_SUCCESS.toBytes().map { byteArray[index++] = it }
 
         key.map { byteArray[index++] = it }
 
@@ -38,10 +32,8 @@ class DhtPut(val ttl: Short, val replicationsLeft: Byte, val key: ByteArray, val
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as DhtPut
+        other as DhtSuccess
 
-        if (ttl != other.ttl) return false
-        if (replicationsLeft != other.replicationsLeft) return false
         if (!Arrays.equals(key, other.key)) return false
         if (!Arrays.equals(value, other.value)) return false
 
@@ -49,27 +41,20 @@ class DhtPut(val ttl: Short, val replicationsLeft: Byte, val key: ByteArray, val
     }
 
     override fun hashCode(): Int {
-        var result = ttl.toInt()
-        result = 31 * result + replicationsLeft
-        result = 31 * result + Arrays.hashCode(key)
+        var result = Arrays.hashCode(key)
         result = 31 * result + Arrays.hashCode(value)
         return result
     }
 
     companion object {
-        fun parse(size: Short, dataInputStream: DataInputStream): DhtPut {
-            val ttl = dataInputStream.readShort()
-
-            val replicationsLeft = dataInputStream.read().toByte()
-            val reserved = dataInputStream.read()
-
+        fun parse(dataInputStream: DataInputStream): DhtSuccess {
             val key = ByteArray(KEY_LENGTH)
             dataInputStream.read(key)
 
             val value = ByteArray(dataInputStream.available())
             dataInputStream.read(value)
 
-            return DhtPut(ttl, replicationsLeft, key, value)
+            return DhtSuccess(key, value)
         }
     }
 }

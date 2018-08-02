@@ -1,8 +1,12 @@
 package sssemil.com.p2p.dht
 
 import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.delay
 import sssemil.com.p2p.dht.api.*
+import sssemil.com.p2p.dht.api.model.Ping
+import sssemil.com.p2p.dht.api.model.Pong
 import sssemil.com.p2p.dht.util.Logger
+import sssemil.com.p2p.dht.util.isAlive
 import sssemil.com.p2p.dht.util.writeShort
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -25,51 +29,70 @@ class Server(private val port: Int) {
         }
     }
 
-    private fun handleClient(connectionSocket: Socket) = async {
-        val inFromClient = DataInputStream(connectionSocket.getInputStream().buffered())
-        val outToClient = DataOutputStream(connectionSocket.getOutputStream())
+    private fun handleClient(socket: Socket) = async {
+        while (socket.isAlive) {
+            val inFromClient = DataInputStream(socket.getInputStream().buffered())
+            val outToClient = DataOutputStream(socket.getOutputStream())
 
-        val size = inFromClient.readShort()
-        val message = inFromClient.readShort()
+            if (inFromClient.available() > 0) {
+                val size = inFromClient.readShort()
+                val message = inFromClient.readShort()
 
-        when (message) {
-            DHT_PUT -> {
-                val dhtPut = DhtPut.parse(size, inFromClient)
+                when (message) {
+                    DHT_PUT -> {
+                        val dhtPut = DhtPut.parse(size, inFromClient)
 
-                Logger.i("[${connectionSocket.inetAddress}][DHT_PUT] DhtPut: $dhtPut")
+                        Logger.i("[${socket.inetAddress}][DHT_PUT] DhtPut: $dhtPut")
 
-                Storage.store(dhtPut.key, dhtPut.value)
+                        Storage.store(dhtPut.key, dhtPut.value)
 
-                //TODO send it to reserves
-            }
-            DHT_GET -> {
-                val dhtGet = DhtGet.parse(inFromClient)
+                        //TODO send it to reserves
+                    }
+                    DHT_GET -> {
+                        val dhtGet = DhtGet.parse(inFromClient)
 
-                Logger.i("[${connectionSocket.inetAddress}][DHT_GET] DhtGet: $dhtGet")
+                        Logger.i("[${socket.inetAddress}][DHT_GET] DhtGet: $dhtGet")
 
-                Storage.get(dhtGet.key)?.let {
-                    sendSuccess(outToClient, dhtGet.key, it)
-                    return@async
+                        Storage.get(dhtGet.key)?.let {
+                            sendSuccess(outToClient, dhtGet.key, it)
+                            return@async
+                        }
+
+                        //TODO pass along with DHT_GET_INTERNAL and wait max TTL
+
+                        sendFailure(outToClient, dhtGet.key)
+                    }
+                    DHT_OBJ -> {
+                        val dhtObj = DhtObj.parse(inFromClient)
+
+                        Logger.i("[${socket.inetAddress}][DHT_OBJ] DhtObj: $dhtObj")
+
+                        handleObj(socket, outToClient, dhtObj)
+                    }
+                    else -> {
+                        Logger.e("[${socket.inetAddress}] Invalid message code: $message!")
+                    }
                 }
-
-                //TODO pass along with DHT_GET_INTERNAL and wait max TTL
-
-                sendFailure(outToClient, dhtGet.key)
             }
-            DHT_GET_INTERNAL -> {
-                val dhtGetInternal = DhtGetInternal.parse(inFromClient)
 
-                Logger.i("[${connectionSocket.inetAddress}][DHT_GET_INTERNAL] DhtGetInternal: $dhtGetInternal")
+            delay(10)
+        }
+    }
 
-                Storage.get(dhtGetInternal.key)?.let {
-                    sendSuccess(outToClient, dhtGetInternal.key, it)
-                    return@async
-                }
+    private fun handleObj(connectionSocket: Socket, outToClient: DataOutputStream, dhtObj: DhtObj) {
+        when (dhtObj.code) {
+            DHT_PING -> {
+                val ping = dhtObj.obj as Ping
 
-                //TODO pass along with DHT_GET_INTERNAL and wait TTL - 1
-            }
-            else -> {
-                Logger.e("[${connectionSocket.inetAddress}] Invalid message code: $message!")
+                Logger.i("[${connectionSocket.inetAddress}][DHT_PING] $ping")
+
+                val pong = Pong(ping.token)
+
+                Logger.i("[DHT_PONG] sending: pong: $pong")
+
+                val reply = DhtObj(DHT_PONG, pong).generate()
+
+                outToClient.write(reply)
             }
         }
     }
@@ -112,8 +135,3 @@ class Server(private val port: Int) {
         }
     }
 }
-
-private val Socket.isAlive: Boolean
-    get() {
-        return isBound && isConnected && !isClosed && !isInputShutdown && !isOutputShutdown
-    }

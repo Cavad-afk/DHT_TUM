@@ -4,13 +4,18 @@ internal const val DHT_PUT = 650.toShort()
 internal const val DHT_GET = 651.toShort()
 internal const val DHT_SUCCESS = 652.toShort()
 internal const val DHT_FAILURE = 653.toShort()
+internal const val DHT_OBJ = 654.toShort()
 
-internal const val DHT_PING = 654.toShort()
-internal const val DHT_PONG = 655.toShort()
-internal const val DHT_FIND_NODE = 656.toShort()
-internal const val DHT_FIND_VALUE = 657.toShort()
-internal const val DHT_ERROR = 658.toShort()
-internal const val DHT_NODE = 659.toShort()
-internal const val DHT_VALUE = 660.toShort()
+internal const val DHT_PING = 1
+internal const val DHT_PONG = 2
+internal const val DHT_FIND_NODE = 3
+internal const val DHT_FIND_VALUE = 4
+internal const val DHT_ERROR = 5
+internal const val DHT_NODE = 6
+internal const val DHT_VALUE = 7
 
-internal const val KEY_LENGTH = 32
+internal const val KEY_LENGTH = 160
+internal const val K = 5
+internal const val ALPHA = 3
+
+internal const val PING_DELAY = 5000 // 5s

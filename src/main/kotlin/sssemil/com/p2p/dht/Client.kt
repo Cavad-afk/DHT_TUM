@@ -1,115 +1,107 @@
 package sssemil.com.p2p.dht
 
 import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.runBlocking
 import sssemil.com.p2p.dht.api.*
+import sssemil.com.p2p.dht.api.model.Ping
+import sssemil.com.p2p.dht.api.model.Pong
+import sssemil.com.p2p.dht.util.ActiveList
 import sssemil.com.p2p.dht.util.Logger
-import sssemil.com.p2p.dht.util.writeShort
+import sssemil.com.p2p.dht.util.isAlive
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ConnectException
 import java.net.Socket
-import java.util.*
 
 class Client(private val serverAddress: String, val serverPort: Int) {
     private lateinit var clientSocket: Socket
     private lateinit var outToServer: DataOutputStream
     private lateinit var inFromServer: DataInputStream
 
-    private fun setupConnection() {
+    private val responses = ActiveList<DhtMessage>()
+
+    private fun setupConnection() = async {
         try {
             clientSocket = Socket(serverAddress, serverPort)
             outToServer = DataOutputStream(clientSocket.getOutputStream())
             inFromServer = DataInputStream(clientSocket.getInputStream())
+
+            monitor()
+
+            return@async true
         } catch (e: ConnectException) {
-            setupConnection()
+            Logger.e(e.localizedMessage)
         }
+
+        return@async false
     }
 
-    fun putValue(key: ByteArray, value: ByteArray) {
-        if (key.size != 32) throw RuntimeException("Key length has to be 32!")
+    private fun monitor() = async {
+        while (clientSocket.isAlive) {
+            if (inFromServer.available() > 0) {
+                seekResponse()
+            }
 
-        var size = 4
-        val message = DHT_PUT
+            delay(10)
+        }
 
-        size += key.size + value.size
-
-        Logger.i("[DHT_PUT] Sending: size: $size, message: $message, key: ${String(key)}, value: $value")
-
-        outToServer.writeShort(size)
-        outToServer.writeShort(message)
-        outToServer.write(key)
-        outToServer.write(value)
-        outToServer.flush()
+        Logger.w("Socket closed!")
     }
 
-    fun getValue(key: ByteArray) = async {
-        if (key.size != 32) throw RuntimeException("Key length has to be 32!")
+    fun ping() = async {
+        if (!clientSocket.isAlive) throw RuntimeException("Connection closed!")
 
-        var size = 4
-        val message = DHT_GET
+        val ping = Ping()
+        val dhtObj = DhtObj(DHT_PING, ping)
 
-        size += key.size
-
-        Logger.i("[DHT_GET] Sending: size: $size, message: $message, key: ${String(key)}")
-
-        outToServer.writeShort(size)
-        outToServer.writeShort(message)
-        outToServer.write(key)
+        outToServer.write(dhtObj.generate())
         outToServer.flush()
 
-        return@async getResponse(inFromServer)
+        return@async responses.waitFor({
+            it is DhtObj && it.obj is Pong && ping.token == it.obj.token
+        }, PING_DELAY).await()
     }
 
-    private fun getResponse(inFromServer: DataInputStream): Response {
+    private fun seekResponse() {
         val size = inFromServer.readShort()
         val message = inFromServer.readShort()
 
         when (message) {
             DHT_SUCCESS -> {
-                val key = ByteArray(KEY_LENGTH)
-                inFromServer.read(key)
-                val value = ByteArray(size - 4 - key.size)
-                inFromServer.read(value)
+                val dhtSuccess = DhtSuccess.parse(inFromServer)
 
-                Logger.i("[DHT_SUCCESS] size: $size, message: $message, key: ${String(key)}, value: ${String(value)}")
+                Logger.i("[${clientSocket.inetAddress}][DHT_SUCCESS] $dhtSuccess")
 
-                return Response(message, value)
+                responses.add(dhtSuccess)
             }
             DHT_FAILURE -> {
-                val key = ByteArray(KEY_LENGTH)
-                inFromServer.read(key)
+                val dhtFailure = DhtFailure.parse(inFromServer)
 
-                Logger.e("[DHT_FAILURE] size: $size, message: $message, key: ${String(key)}")
-                return Response(message)
+                Logger.e("[${clientSocket.inetAddress}][DHT_FAILURE] $dhtFailure")
+
+                responses.add(dhtFailure)
+            }
+            DHT_OBJ -> {
+                val dhtObj = DhtObj.parse(inFromServer)
+
+                Logger.i("[${clientSocket.inetAddress}][DHT_OBJ] DhtObj: $dhtObj")
+
+                responses.add(dhtObj)
             }
             else -> {
                 Logger.e("Invalid message received: $message")
-                return Response(message)
             }
-        }
-    }
-
-    data class Response(val message: Short, val value: ByteArray = byteArrayOf()) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as Response
-
-            if (message != other.message) return false
-            if (!Arrays.equals(value, other.value)) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result: Int = message.toInt()
-            result = 31 * result + Arrays.hashCode(value)
-            return result
         }
     }
 
     init {
-        setupConnection()
+        runBlocking {
+            if (setupConnection().await()) {
+                Logger.i("CLIENT: Setup connection: complete!")
+            } else {
+                Logger.e("CLIENT: Setup connection: failed!")
+            }
+        }
     }
 }

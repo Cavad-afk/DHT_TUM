@@ -2,8 +2,9 @@ package sssemil.com.p2p.dht.api
 
 import sssemil.com.p2p.dht.util.toBytes
 import java.io.DataInputStream
+import java.util.*
 
-class DhtGet(val key: ByteArray) : DhtMessage {
+class DhtFailure(val key: ByteArray) : DhtMessage {
 
     init {
         if (key.size != KEY_LENGTH) {
@@ -18,19 +19,33 @@ class DhtGet(val key: ByteArray) : DhtMessage {
 
         sizeInBytes.toBytes().map { byteArray[index++] = it }
 
-        DHT_GET.toBytes().map { byteArray[index++] = it }
+        DHT_FAILURE.toBytes().map { byteArray[index++] = it }
 
         key.map { byteArray[index++] = it }
+
 
         return byteArray
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as DhtFailure
+
+        if (!Arrays.equals(key, other.key)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = Arrays.hashCode(key)
+
     companion object {
-        fun parse(dataInputStream: DataInputStream): DhtGet {
+        fun parse(dataInputStream: DataInputStream): DhtFailure {
             val key = ByteArray(KEY_LENGTH)
             dataInputStream.read(key)
 
-            return DhtGet(key)
+            return DhtFailure(key)
         }
     }
 }

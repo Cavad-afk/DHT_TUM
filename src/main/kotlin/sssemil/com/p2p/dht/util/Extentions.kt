@@ -1,6 +1,7 @@
 package sssemil.com.p2p.dht.util
 
 import java.io.DataOutputStream
+import java.net.Socket
 
 fun DataOutputStream.writeShort(value: Short) {
     writeShort(value.toInt())
@@ -21,3 +22,8 @@ fun Int.toBytes(): ByteArray {
     result[0] = shr(24).toByte()
     return result
 }
+
+val Socket.isAlive: Boolean
+    get() {
+        return isBound && isConnected && !isClosed && !isInputShutdown && !isOutputShutdown
+    }
