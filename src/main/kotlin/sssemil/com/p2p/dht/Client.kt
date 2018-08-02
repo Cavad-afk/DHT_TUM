@@ -49,10 +49,10 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
         Logger.w("Socket closed!")
     }
 
-    fun ping() = async {
+    fun ping(peerId: ByteArray) = async {
         if (!clientSocket.isAlive) throw RuntimeException("Connection closed!")
 
-        val ping = Ping()
+        val ping = Ping(peerId = peerId)
         val dhtObj = DhtObj(DHT_PING, ping)
 
         outToServer.write(dhtObj.generate())
@@ -103,5 +103,12 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
             Logger.e("CLIENT: Setup connection: failed!")
             return@async false
         }
+    }
+
+    fun send(dhtPut: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {
+        outToServer.write(dhtPut.generate())
+        outToServer.flush()
+
+        return@async responses.waitFor(filter, maxDelay).await()
     }
 }
