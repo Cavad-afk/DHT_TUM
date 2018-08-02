@@ -14,8 +14,8 @@ internal const val DHT_ERROR = 5
 internal const val DHT_NODE = 6
 internal const val DHT_VALUE = 7
 
-internal const val KEY_LENGTH = 160
-internal const val K = 5
-internal const val ALPHA = 3
+internal const val KEY_LENGTH = 16 // bytes
+internal const val TOLERANCE = 15 // bytes
+internal const val BUCKETS = 20
 
 internal const val PING_DELAY = 5000 // 5s

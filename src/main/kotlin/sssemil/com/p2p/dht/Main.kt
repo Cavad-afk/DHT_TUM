@@ -1,6 +1,8 @@
 package sssemil.com.p2p.dht
 
 import kotlinx.coroutines.experimental.runBlocking
+import org.apache.commons.codec.digest.DigestUtils
+import sssemil.com.p2p.dht.api.KEY_LENGTH
 import sssemil.com.p2p.dht.util.Logger
 import java.net.InetAddress
 import java.net.UnknownHostException
@@ -9,9 +11,13 @@ import java.util.*
 fun main(args: Array<String>) {
     val random = Random()
     val port = 2000 + random.nextInt(100)
+    var id = ByteArray(KEY_LENGTH)
+    random.nextBytes(id)
+
+    id = DigestUtils.md5(id)
 
     runBlocking {
-        val server = Server(port)
+        val server = Server(port, id)
         server.start().await()
 
         val selfClient = Client(InetAddress.getLocalHost(), port)

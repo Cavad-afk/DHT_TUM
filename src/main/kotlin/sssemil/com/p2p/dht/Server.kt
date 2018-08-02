@@ -12,9 +12,15 @@ import java.io.DataOutputStream
 import java.net.ServerSocket
 import java.net.Socket
 
-class Server(private val port: Int) {
+class Server(private val port: Int, val thisPeerId: ByteArray) {
 
     private var workersNumber = Runtime.getRuntime().availableProcessors()
+
+    private val peersStorage = Array<Array<Peer?>>(KEY_LENGTH) { arrayOfNulls(BUCKETS) };
+
+    init {
+        if (thisPeerId.size != KEY_LENGTH) throw RuntimeException("Peer ID has to be this long : $KEY_LENGTH!")
+    }
 
     fun start() = async {
         Logger.i("Number of workers: $workersNumber")
