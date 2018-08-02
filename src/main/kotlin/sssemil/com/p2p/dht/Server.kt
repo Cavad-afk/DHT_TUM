@@ -98,27 +98,20 @@ class Server(private val port: Int) {
     }
 
     private fun sendFailure(outToClient: DataOutputStream, key: ByteArray) {
-        val size = 4 + key.size
-        val message = DHT_FAILURE
+        val dhtFailure = DhtFailure(key)
 
-        Logger.i("[DHT_FAILURE] sending: size: $size, message: $message, key: ${String(key)}")
+        Logger.i("[DHT_FAILURE] sending: $dhtFailure")
 
-        outToClient.writeShort(size)
-        outToClient.writeShort(message)
-        outToClient.write(key)
+        outToClient.write(dhtFailure.generate())
         outToClient.flush()
     }
 
     private fun sendSuccess(outToClient: DataOutputStream, key: ByteArray, value: ByteArray) {
-        val size = 4 + key.size + value.size
-        val message = DHT_SUCCESS
+        val dhtSuccess = DhtSuccess(key, value)
 
-        Logger.i("[DHT_SUCCESS] sending: size: $size, message: $message, key: ${String(key)}")
+        Logger.i("[DHT_SUCCESS] sending: $dhtSuccess")
 
-        outToClient.writeShort(size)
-        outToClient.writeShort(message)
-        outToClient.write(key)
-        outToClient.write(value)
+        outToClient.write(dhtSuccess.generate())
         outToClient.flush()
     }
 
