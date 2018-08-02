@@ -2,7 +2,6 @@ package sssemil.com.p2p.dht
 
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.runBlocking
 import sssemil.com.p2p.dht.api.*
 import sssemil.com.p2p.dht.api.model.Ping
 import sssemil.com.p2p.dht.api.model.Pong
@@ -12,9 +11,10 @@ import sssemil.com.p2p.dht.util.isAlive
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ConnectException
+import java.net.InetAddress
 import java.net.Socket
 
-class Client(private val serverAddress: String, val serverPort: Int) {
+class Client(private val serverAddress: InetAddress, val serverPort: Int) {
     private lateinit var clientSocket: Socket
     private lateinit var outToServer: DataOutputStream
     private lateinit var inFromServer: DataInputStream
@@ -95,13 +95,13 @@ class Client(private val serverAddress: String, val serverPort: Int) {
         }
     }
 
-    init {
-        runBlocking {
-            if (setupConnection().await()) {
-                Logger.i("CLIENT: Setup connection: complete!")
-            } else {
-                Logger.e("CLIENT: Setup connection: failed!")
-            }
+    fun connect() = async {
+        if (setupConnection().await()) {
+            Logger.i("CLIENT: Setup connection: complete!")
+            return@async true
+        } else {
+            Logger.e("CLIENT: Setup connection: failed!")
+            return@async false
         }
     }
 }
