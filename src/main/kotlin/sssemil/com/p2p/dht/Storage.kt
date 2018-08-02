@@ -5,7 +5,7 @@ class Storage {
     companion object {
         private val hashMap = HashMap<ByteArray, ByteArray>()
 
-        fun store(key: ByteArray, value: ByteArray) {
+        fun store(key: ByteArray, value: ByteArray, ttl: Short) {
             hashMap[key] = value
         }
 
