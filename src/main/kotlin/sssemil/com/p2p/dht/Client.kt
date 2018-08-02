@@ -49,11 +49,11 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
         Logger.w("Socket closed!")
     }
 
-    fun ping(peerId: ByteArray) = async {
+    fun ping(peerId: ByteArray, port: Int) = async {
         if (!clientSocket.isAlive) throw RuntimeException("Connection closed!")
 
-        val ping = Ping(peerId = peerId)
-        val dhtObj = DhtObj(DHT_PING, ping)
+        val ping = Ping(peerId, port)
+        val dhtObj = DhtObj(OBJ_PING, ping)
 
         outToServer.write(dhtObj.generate())
         outToServer.flush()
@@ -105,10 +105,17 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
         }
     }
 
-    fun send(dhtPut: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {
-        outToServer.write(dhtPut.generate())
+    fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {
+        outToServer.write(dhtMessage.generate())
         outToServer.flush()
 
         return@async responses.waitFor(filter, maxDelay).await()
+    }
+
+    fun send(dhtObj: DhtObj, maxDelay: Int) = async {
+        outToServer.write(dhtObj.generate())
+        outToServer.flush()
+
+        return@async responses.waitFor({ it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay).await()
     }
 }
