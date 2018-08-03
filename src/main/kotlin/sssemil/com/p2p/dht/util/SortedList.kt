@@ -9,7 +9,9 @@ class SortedList<T : Comparable<T>?>(val maxSize: Int) : List<T> {
     override val size: Int
         get() = list.size
 
-    fun add(element: T) {
+    fun add(element: T): Boolean {
+        if (list.contains(element)) return false
+
         list.add(element)
 
         Collections.sort(list)
@@ -17,6 +19,8 @@ class SortedList<T : Comparable<T>?>(val maxSize: Int) : List<T> {
         if (list.size > maxSize) {
             list.removeLast()
         }
+
+        return true
     }
 
     override fun contains(element: T) = list.contains(element)
