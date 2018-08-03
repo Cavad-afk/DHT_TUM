@@ -21,7 +21,7 @@ class Janitor(private val server: Server, private val client: Client) {
 
         Logger.i("[JANITOR] Resending all data.")
 
-        all.forEach { key, value ->
+        all.forEach { _, value ->
             val dhtObj = DhtObj(OBJ_PUT, Put((
                     value.ttl - (System.currentTimeMillis() - value.arrivedAt)).toShort(),
                     DEFAULT_REPLICATION, value.value))

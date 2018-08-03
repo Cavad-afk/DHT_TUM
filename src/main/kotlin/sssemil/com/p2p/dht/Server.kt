@@ -16,7 +16,7 @@ import kotlin.collections.HashSet
 
 class Server(var port: Int, var thisPeerId: ByteArray) {
 
-    val run = AtomicBoolean(true)
+    private val run = AtomicBoolean(true)
 
     private var workersNumber = Runtime.getRuntime().availableProcessors()
 
