@@ -3,13 +3,15 @@ package sssemil.com.p2p.dht
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.runBlocking
 import sssemil.com.p2p.dht.api.*
-import sssemil.com.p2p.dht.api.model.Pong
 import sssemil.com.p2p.dht.util.*
 import java.io.File
 import java.net.InetAddress
 import java.net.UnknownHostException
 import java.util.*
 
+/**
+ * Main entry point with simple command line stuff.
+ */
 fun main(args: Array<String>) {
     val scanner = if (args.isNotEmpty()) {
         Scanner(File(args[0]))
@@ -127,37 +129,14 @@ fun addPeer(parts: List<String>, server: Server) = async {
         try {
             val peerIp = InetAddress.getByName(parts[1])
             val peerPort = parts[2].toInt()
+
             if (peerPort < 2000 || peerPort > 2100) {
                 throw NumberFormatException()
             }
 
-            val client = Client(peerIp, peerPort)
+            val providedId = if (parts.size == 4) parts[3].hexStringToByteArray() else null
 
-            if (!client.connect().await()) {
-                Logger.i("Connection failed!")
-            } else {
-                val pong = client.ping(server.thisPeerId, server.port).await() as DhtObj?
-                Logger.i("ping ${peerIp.hostAddress} $peerPort : $pong")
-
-                pong?.let {
-                    var valid = true
-                    val factualPeerId = (it.obj as Pong).peerId
-                    if (parts.size == 4) {
-                        val providedId = parts[3].hexStringToByteArray()
-
-                        if (!providedId.contentEquals(factualPeerId)) {
-                            Logger.e("Peer verification failed! ${providedId.toHexString()} != ${factualPeerId.toHexString()}.")
-                            valid = false
-                        }
-                    }
-
-                    if (valid) {
-                        val peer = Peer(factualPeerId, peerIp, peerPort)
-                        Logger.i("Adding new peer: $peer")
-                        server.addPeer(peer)
-                    }
-                }
-            }
+            server.pair(peerIp, peerPort, providedId)
         } catch (e: NumberFormatException) {
             Logger.e("Invalid port number!")
         } catch (e: UnknownHostException) {

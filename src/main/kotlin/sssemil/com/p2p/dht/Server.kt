@@ -7,6 +7,7 @@ import sssemil.com.p2p.dht.api.model.*
 import sssemil.com.p2p.dht.util.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.*
@@ -288,5 +289,34 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
 
         peersStorage[distance].add(PeerHolder(peer.id, peer.ip, peer.port,
                 System.currentTimeMillis(), System.currentTimeMillis()))
+    }
+
+    fun pair(peerIp: InetAddress, peerPort: Int, providedId: ByteArray?) = async {
+        val client = Client(peerIp, peerPort)
+
+        if (!client.connect().await()) {
+            Logger.i("Connection failed!")
+        } else {
+            val pong = client.ping(thisPeerId, port).await() as DhtObj?
+            Logger.i("ping ${peerIp.hostAddress} $peerPort : $pong")
+
+            pong?.let {
+                var valid = true
+                val factualPeerId = (it.obj as Pong).peerId
+
+                if (providedId != null) {
+                    if (!providedId.contentEquals(factualPeerId)) {
+                        Logger.e("Peer verification failed! ${providedId.toHexString()} != ${factualPeerId.toHexString()}.")
+                        valid = false
+                    }
+                }
+
+                if (valid) {
+                    val peer = Peer(factualPeerId, peerIp, peerPort)
+                    Logger.i("Adding new peer: $peer")
+                    addPeer(peer)
+                }
+            }
+        }
     }
 }
