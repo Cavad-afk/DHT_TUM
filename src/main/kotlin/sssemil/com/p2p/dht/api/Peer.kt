@@ -1,7 +1,7 @@
 package sssemil.com.p2p.dht.api
 
+import sssemil.com.p2p.dht.util.toHexString
 import java.net.InetAddress
-import java.nio.charset.Charset
 import java.util.*
 
 open class Peer(val id: ByteArray, val ip: InetAddress, val port: Int) {
@@ -26,6 +26,6 @@ open class Peer(val id: ByteArray, val ip: InetAddress, val port: Int) {
     }
 
     override fun toString(): String {
-        return "Peer(id=${Base64.getEncoder().encode(id).toString(Charset.defaultCharset())}, ip=$ip, port=$port)"
+        return "Peer(id=${id.toHexString()}, ip=$ip, port=$port)"
     }
 }

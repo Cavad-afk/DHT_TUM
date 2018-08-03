@@ -9,7 +9,6 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ServerSocket
 import java.net.Socket
-import java.nio.charset.Charset
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.HashSet
@@ -31,7 +30,7 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
 
         Logger.i("Number of workers: $workersNumber")
         Logger.i("Port number: $port")
-        Logger.i("ID: ${Base64.getEncoder().encode(thisPeerId).toString(Charset.defaultCharset())}")
+        Logger.i("ID: ${thisPeerId.toHexString()}")
 
         val serverSocket = ServerSocket(port)
 
@@ -100,7 +99,7 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
                                             val key = generateKey(value)
 
                                             if (dhtGet.key.contentEquals(key)) {
-                                                Logger.i("Value found for ${key.toBase64()}!")
+                                                Logger.i("Value found for ${key.toHexString()}!")
 
                                                 sendSuccess(outToClient, key, value)
                                             }
@@ -170,13 +169,13 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
         val tmp = SortedList<WeightedPeer>(GRAB_SIZE)
         peersStorage.iterator().forEach { sortedList ->
             sortedList.forEach {
-                if (!exceptions.contains(it.id.toBase64())) {
+                if (!exceptions.contains(it.id.toHexString())) {
                     tmp.add(WeightedPeer(IdKeyUtils.distance(key, it.id), it))
                 }
             }
         }
 
-        return tmp.list;
+        return tmp.list
     }
 
     private fun handleObj(connectionSocket: Socket, outToClient: DataOutputStream, dhtObj: DhtObj) = async {
@@ -230,7 +229,7 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
                             if (client.connect().await()) {
                                 put.replicationsLeft--
                                 client.send(DhtObj(OBJ_PUT, put), { true }, 0)
-                                sentTo.add(it.peer.id.toBase64())
+                                sentTo.add(it.peer.id.toHexString())
                             }
                         }
                     }
@@ -289,18 +288,5 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
 
         peersStorage[distance].add(PeerHolder(peer.id, peer.ip, peer.port,
                 System.currentTimeMillis(), System.currentTimeMillis()))
-    }
-
-    companion object {
-
-        private fun bytesToHex(hash: ByteArray): String {
-            val hexString = StringBuffer()
-            for (i in hash.indices) {
-                val hex = Integer.toHexString(0xff.and(hash[i].toInt()))
-                if (hex.length == 1) hexString.append('0')
-                hexString.append(hex)
-            }
-            return hexString.toString()
-        }
     }
 }

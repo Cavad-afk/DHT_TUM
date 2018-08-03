@@ -1,5 +1,6 @@
 package sssemil.com.p2p.dht.api.model
 
+import sssemil.com.p2p.dht.util.toHexString
 import java.util.*
 
 data class Pong(val peerId: ByteArray, val port: Int) : TokenModel() {
@@ -19,5 +20,9 @@ data class Pong(val peerId: ByteArray, val port: Int) : TokenModel() {
         var result = Arrays.hashCode(peerId)
         result = 31 * result + port
         return result
+    }
+
+    override fun toString(): String {
+        return "Pong(peerId=${peerId.toHexString()}, port=$port)"
     }
 }

@@ -1,5 +1,7 @@
 package sssemil.com.p2p.dht
 
+import sssemil.com.p2p.dht.util.Logger
+import sssemil.com.p2p.dht.util.toHexString
 import java.util.*
 
 class Storage {
@@ -32,20 +34,16 @@ class Storage {
         private val hashMap = HashMap<ByteArray, Entry>()
 
         fun store(key: ByteArray, value: ByteArray, ttl: Long) {
-            hashMap[key] = Entry(value, ttl, System.currentTimeMillis())
-        }
-
-        fun remove(key: ByteArray): Boolean {
-            if (contains(key)) {
-                hashMap.remove(key)
-
-                return true
+            synchronized(hashMap) {
+                hashMap[key] = Entry(value, ttl, System.currentTimeMillis())
             }
-
-            return false
         }
 
-        fun contains(key: ByteArray) = hashMap.contains(key)
+        fun contains(key: ByteArray): Boolean {
+            synchronized(hashMap) {
+                return hashMap.contains(key)
+            }
+        }
 
         fun get(key: ByteArray): ByteArray? {
             cleanup()
@@ -60,6 +58,7 @@ class Storage {
             keys.forEach { key ->
                 if (hashMap[key]?.isOutdated() == true) {
                     hashMap.remove(key)
+                    Logger.d("[STORAGE] Removing outdated item: ${key.toHexString()}")
                 }
             }
         }

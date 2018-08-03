@@ -3,10 +3,7 @@ package sssemil.com.p2p.dht
 import kotlinx.coroutines.experimental.runBlocking
 import sssemil.com.p2p.dht.api.*
 import sssemil.com.p2p.dht.api.model.Pong
-import sssemil.com.p2p.dht.util.Logger
-import sssemil.com.p2p.dht.util.generateId
-import sssemil.com.p2p.dht.util.generateKey
-import sssemil.com.p2p.dht.util.toBase64
+import sssemil.com.p2p.dht.util.*
 import java.io.File
 import java.net.InetAddress
 import java.net.UnknownHostException
@@ -98,12 +95,11 @@ fun main(args: Array<String>) {
                                             var valid = true
                                             val factualPeerId = (it.obj as Pong).peerId
                                             if (parts.size == 4) {
-                                                val providedId = Base64.getDecoder().decode(parts[3])
-                                                providedId?.let { providedId1 ->
-                                                    if (!providedId1.contentEquals(factualPeerId)) {
-                                                        Logger.e("Peer verification failed!")
-                                                        valid = false
-                                                    }
+                                                val providedId = parts[3].hexStringToByteArray()
+
+                                                if (!providedId.contentEquals(factualPeerId)) {
+                                                    Logger.e("Peer verification failed! ${providedId.toHexString()} != ${factualPeerId.toHexString()}.")
+                                                    valid = false
                                                 }
                                             }
 
@@ -128,10 +124,12 @@ fun main(args: Array<String>) {
                                 val value = line.substring(line.indexOf(" ") + 1).toByteArray()
                                 val key = generateKey(value)
 
-                                Logger.i("Here is your key: ${key.toBase64()}. Attempting saving.")
+                                Logger.i("Here is your key: ${key.toHexString()}. Attempting saving.")
 
                                 val dhtPut = DhtPut(DEFAULT_TTL, DEFAULT_REPLICATION, key, value)
                                 selfClient.send(dhtPut)
+                            } else {
+                                printPutHelp()
                             }
                         }
                         "get" -> {
@@ -149,6 +147,8 @@ fun main(args: Array<String>) {
                                         DEFAULT_DELAY).await()
 
                                 Logger.i("FindValue response: $response")
+                            } else {
+                                printGetHelp()
                             }
                         }
                         "port" -> {
@@ -161,6 +161,7 @@ fun main(args: Array<String>) {
                                     server.start().await()
                                 } catch (e: NumberFormatException) {
                                     Logger.e(e.localizedMessage)
+                                    printPortHelp()
                                 }
                             } else {
                                 Logger.i("Current port: $server.port")
@@ -180,12 +181,10 @@ fun printHelp() {
     printPingHelp()
     printListHelp()
     printAddPeerHelp()
+    printPutHelp()
+    printGetHelp()
+    printPortHelp()
     printExitHelp()
-}
-
-fun printAddPeerHelp() {
-    Logger.i("addPeer: 'addPeer {destination IP} {destination port} [optional]{remote peer ID}'\n" +
-            "   Add new peer.")
 }
 
 fun printPingHelp() {
@@ -196,6 +195,28 @@ fun printPingHelp() {
 fun printListHelp() {
     Logger.i("list: 'list'\n" +
             "   List peers.")
+}
+
+fun printAddPeerHelp() {
+    Logger.i("addPeer: 'addPeer {destination IP} {destination port} [optional]{remote peer ID}'\n" +
+            "   Add new peer.")
+}
+
+fun printPutHelp() {
+    Logger.i("put: 'put {value}'\n" +
+            "   Add new item. Key will be printed after executing.")
+}
+
+fun printGetHelp() {
+    Logger.i("get: 'get {key}'\n" +
+            "   Get item by key.")
+}
+
+fun printPortHelp() {
+    Logger.i("port: 'port'\n" +
+            "   Print current port number.")
+    Logger.i("port: 'port {new port [2000-2100]}'\n" +
+            "   Change port number. Will restart the server.")
 }
 
 fun printExitHelp() {
