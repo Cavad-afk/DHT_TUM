@@ -64,7 +64,7 @@ class Server(var port: Int, var thisPeerId: ByteArray) {
 
                         Logger.i("[${socket.inetAddress}][DHT_PUT] DhtPut: $dhtPut")
 
-                        val put = Put(dhtPut.ttl, dhtPut.replicationsLeft, dhtPut.value)
+                        val put = Put(dhtPut.ttl.toLong(), dhtPut.replicationsLeft, dhtPut.value)
 
                         handleObj(socket, outToClient, DhtObj(OBJ_PUT, put))
                     }

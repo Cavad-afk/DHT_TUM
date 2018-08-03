@@ -22,8 +22,8 @@ class Janitor(private val server: Server, private val client: Client) {
         Logger.i("[JANITOR] Resending all data.")
 
         all.forEach { _, value ->
-            val dhtObj = DhtObj(OBJ_PUT, Put((
-                    value.ttl - (System.currentTimeMillis() - value.arrivedAt)).toShort(),
+            val dhtObj = DhtObj(OBJ_PUT, Put(
+                    value.ttl - (System.currentTimeMillis() - value.arrivedAt),
                     DEFAULT_REPLICATION, value.value))
             if ((dhtObj.obj as Put).ttl > 0) {
                 client.send(dhtObj)
@@ -36,7 +36,7 @@ class Janitor(private val server: Server, private val client: Client) {
     }
 
     companion object {
-        const val SECOND = 1000
+        const val SECOND = 1000L
         const val MINUTE = 60 * SECOND
         const val HOUR = 60 * MINUTE
         const val DAY = 24 * HOUR

@@ -3,7 +3,7 @@ package sssemil.com.p2p.dht.api.model
 import sssemil.com.p2p.dht.util.generateKey
 import java.util.*
 
-data class Put(val ttl: Short, var replicationsLeft: Byte, val value: ByteArray) : TokenModel() {
+data class Put(val ttl: Long, var replicationsLeft: Byte, val value: ByteArray) : TokenModel() {
     val key: ByteArray
         get() = generateKey(value)
 

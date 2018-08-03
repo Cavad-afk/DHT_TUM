@@ -4,7 +4,7 @@ import java.util.*
 
 class Storage {
 
-    data class Entry(val value: ByteArray, val ttl: Short, val arrivedAt: Long) {
+    data class Entry(val value: ByteArray, val ttl: Long, val arrivedAt: Long) {
         fun isOutdated() = System.currentTimeMillis() - arrivedAt > ttl
 
         override fun equals(other: Any?): Boolean {
@@ -22,7 +22,7 @@ class Storage {
 
         override fun hashCode(): Int {
             var result = Arrays.hashCode(value)
-            result = 31 * result + ttl
+            result = (31 * result + ttl).toInt()
             result = 31 * result + arrivedAt.hashCode()
             return result
         }
@@ -31,7 +31,7 @@ class Storage {
     companion object {
         private val hashMap = HashMap<ByteArray, Entry>()
 
-        fun store(key: ByteArray, value: ByteArray, ttl: Short) {
+        fun store(key: ByteArray, value: ByteArray, ttl: Long) {
             hashMap[key] = Entry(value, ttl, System.currentTimeMillis())
         }
 
@@ -47,9 +47,13 @@ class Storage {
 
         fun contains(key: ByteArray) = hashMap.contains(key)
 
-        fun get(key: ByteArray) = if (contains(key)) {
-            hashMap[key]?.value
-        } else null
+        fun get(key: ByteArray): ByteArray? {
+            cleanup()
+
+            return if (contains(key)) {
+                hashMap[key]?.value
+            } else null
+        }
 
         fun cleanup() {
             val keys = hashMap.keys
