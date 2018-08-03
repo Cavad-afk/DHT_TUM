@@ -48,17 +48,21 @@ class Storage {
         fun get(key: ByteArray): ByteArray? {
             cleanup()
 
-            return if (contains(key)) {
-                hashMap[key]?.value
-            } else null
+            synchronized(hashMap) {
+                return if (contains(key)) {
+                    hashMap[key]?.value
+                } else null
+            }
         }
 
         fun cleanup() {
-            val keys = hashMap.keys
-            keys.forEach { key ->
-                if (hashMap[key]?.isOutdated() == true) {
-                    hashMap.remove(key)
-                    Logger.d("[STORAGE] Removing outdated item: ${key.toHexString()}")
+            synchronized(hashMap) {
+                val keys = hashMap.keys.toList()
+                keys.forEach { key ->
+                    if (hashMap[key]?.isOutdated() == true) {
+                        hashMap.remove(key)
+                        Logger.d("[STORAGE] Removing outdated item: ${key.toHexString()}")
+                    }
                 }
             }
         }
