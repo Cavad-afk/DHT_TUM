@@ -1,6 +1,6 @@
 package sssemil.com.p2p.dht
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import sssemil.com.p2p.dht.util.generateId
@@ -17,7 +17,7 @@ class TestStorage {
 
         val savedValue = Storage.get(key)
 
-        assertEquals(value, savedValue)
+        assertArrayEquals(value, savedValue)
     }
 
     @Test
