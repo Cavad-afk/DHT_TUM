@@ -1,7 +1,7 @@
 package sssemil.com.p2p.dht.api
 
+import sssemil.com.p2p.dht.util.toHexString
 import java.net.InetAddress
-import java.nio.charset.Charset
 import java.util.*
 
 class PeerHolder(id: ByteArray, ip: InetAddress, port: Int, val firstSeen: Long, var lastSeen: Long) : Peer(id, ip, port), Comparable<PeerHolder> {
@@ -28,6 +28,6 @@ class PeerHolder(id: ByteArray, ip: InetAddress, port: Int, val firstSeen: Long,
     }
 
     override fun toString(): String {
-        return "PeerHolder(id=${Base64.getEncoder().encode(id).toString(Charset.defaultCharset())}, ip=$ip, port=$port, firstSeen=$firstSeen, lastSeen=$lastSeen)"
+        return "PeerHolder(id=${id.toHexString()}, ip=$ip, port=$port, firstSeen=$firstSeen, lastSeen=$lastSeen)"
     }
 }
