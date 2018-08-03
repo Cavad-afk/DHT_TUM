@@ -3,7 +3,10 @@ package sssemil.com.p2p.dht
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.runBlocking
 import sssemil.com.p2p.dht.api.*
-import sssemil.com.p2p.dht.util.*
+import sssemil.com.p2p.dht.util.Logger
+import sssemil.com.p2p.dht.util.generateKey
+import sssemil.com.p2p.dht.util.hexStringToByteArray
+import sssemil.com.p2p.dht.util.toHexString
 import java.io.File
 import java.net.InetAddress
 import java.net.UnknownHostException
@@ -22,7 +25,7 @@ fun main(args: Array<String>) {
     val random = Random()
 
     runBlocking {
-        val server = Server(2000 + random.nextInt(100), generateId())
+        val server = Server()
         server.start().await()
 
         val selfClient = Client(InetAddress.getLocalHost(), server.port)
@@ -49,7 +52,7 @@ fun main(args: Array<String>) {
                             ping(parts, server)
                         }
                         "list" -> {
-                            list(parts, server)
+                            list(server)
                         }
                         "addPeer" -> {
                             addPeer(parts, server)
@@ -147,8 +150,8 @@ fun addPeer(parts: List<String>, server: Server) = async {
     }
 }
 
-fun list(parts: List<String>, server: Server) {
-    server.peersStorage.forEachIndexed { i, bucket ->
+fun list(server: Server) {
+    server.peersStorage.peers.forEachIndexed { i, bucket ->
         bucket.forEachIndexed { j, peer ->
             Logger.i("$i $j $peer")
         }
@@ -169,7 +172,7 @@ fun ping(parts: List<String>, server: Server) = async {
             if (!client.connect().await()) {
                 Logger.i("Connection failed!")
             } else {
-                Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(server.thisPeerId, server.port).await()}")
+                Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(server.peerId, server.port).await()}")
             }
         } catch (e: NumberFormatException) {
             Logger.e("Invalid port number!")
