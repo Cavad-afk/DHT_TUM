@@ -7,34 +7,19 @@ import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.*
 
-class Logger {
-    companion object {
-        private const val DEBUG = false
+object Logger {
+    private const val DEBUG = false
 
-        private const val logFileName = "dht.log"
+    private const val logFileName = "dht.log"
 
-        private var logOut = PrintWriter(File(logFileName))
-        private val logLock = Object()
+    private var logOut = PrintWriter(File(logFileName))
+    private val logLock = Object()
 
-        var writeLogsToFile = false
+    var writeLogsToFile = false
 
-        fun d(msg: String) {
-            if (DEBUG) {
-                val msgWithInfo = "[DEBUG][${getDateString()}]: $msg"
-
-                System.out.println(msgWithInfo)
-
-                if (writeLogsToFile) {
-                    synchronized(logLock) {
-                        logOut.println(msgWithInfo)
-                        logOut.flush()
-                    }
-                }
-            }
-        }
-
-        fun i(msg: String) {
-            val msgWithInfo = "[INFO][${getDateString()}]: $msg"
+    fun d(msg: String) {
+        if (DEBUG) {
+            val msgWithInfo = "[D][${getTag()}][${getDateString()}]: $msg"
 
             System.out.println(msgWithInfo)
 
@@ -45,56 +30,102 @@ class Logger {
                 }
             }
         }
+    }
 
-        fun w(msg: String) {
-            val msgWithInfo = "[WARNING][${getDateString()}]: $msg"
+    fun i(msg: String) {
+        val msgWithInfo = "[I][${getTag()}][${getDateString()}]: $msg"
 
-            System.out.println(msgWithInfo)
+        System.out.println(msgWithInfo)
 
-            if (writeLogsToFile) {
-                synchronized(logLock) {
-                    logOut.println(msgWithInfo)
-                    logOut.flush()
-                }
+        if (writeLogsToFile) {
+            synchronized(logLock) {
+                logOut.println(msgWithInfo)
+                logOut.flush()
             }
         }
+    }
 
-        fun e(msg: String) {
-            val msgWithInfo = "[ERROR][${getDateString()}]: $msg"
+    fun w(msg: String) {
+        val msgWithInfo = "[W][${getTag()}][${getDateString()}]: $msg"
 
-            System.err.println(msgWithInfo)
+        System.out.println(msgWithInfo)
 
-            if (writeLogsToFile) {
-                synchronized(logLock) {
-                    logOut.println(msgWithInfo)
-                    logOut.flush()
-                }
+        if (writeLogsToFile) {
+            synchronized(logLock) {
+                logOut.println(msgWithInfo)
+                logOut.flush()
             }
-            //throw RuntimeException(msgWithInfo)
         }
+    }
 
-        private fun getDateString(): String {
-            val calendar = Calendar.getInstance()
-            val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm:ss")
-            return dateFormat.format(calendar.time)
+    fun e(msg: String) {
+        val msgWithInfo = "[E][${getTag()}][${getDateString()}]: $msg"
+
+        System.err.println(msgWithInfo)
+
+        if (writeLogsToFile) {
+            synchronized(logLock) {
+                logOut.println(msgWithInfo)
+                logOut.flush()
+            }
         }
+        //throw RuntimeException(msgWithInfo)
+    }
 
-        fun getTimeString(deltaTime: Long = System.currentTimeMillis()): String {
-            var holder = deltaTime
-            val second = holder / 1000 % 60
-            holder -= second * 1000
-            val minute = holder / (1000 * 60) % 60
-            holder -= minute * 1000 * 60
-            val hour = holder / (1000 * 60 * 60) % 24
-            holder -= hour * 1000 * 60 * 24
+    private fun getDateString(): String {
+        val calendar = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm:ss")
+        return dateFormat.format(calendar.time)
+    }
 
-            return String.format("%02dh:%02dm:%02ds:%04dms", hour, minute, second, holder)
-        }
+    fun getTimeString(deltaTime: Long = System.currentTimeMillis()): String {
+        var holder = deltaTime
+        val second = holder / 1000 % 60
+        holder -= second * 1000
+        val minute = holder / (1000 * 60) % 60
+        holder -= minute * 1000 * 60
+        val hour = holder / (1000 * 60 * 60) % 24
+        holder -= hour * 1000 * 60 * 24
 
-        fun setOutputDirectory(rootFolder: File) {
-            rootFolder.mkdirs()
-            val logFile = File(rootFolder, logFileName)
-            logOut = PrintWriter(BufferedWriter(FileWriter(logFile, true)))
-        }
+        return String.format("%02dh:%02dm:%02ds:%04dms", hour, minute, second, holder)
+    }
+
+    fun setOutputDirectory(rootFolder: File) {
+        rootFolder.mkdirs()
+        val logFile = File(rootFolder, logFileName)
+        logOut = PrintWriter(BufferedWriter(FileWriter(logFile, true)))
+    }
+
+    /**
+     * This function wil give you a tag based on build type.
+     *
+     * @return tag for logging.
+     */
+    private fun getTag(): String {
+        return if (DEBUG) {
+            getCaller()?.let {
+                return@let it.className?.substringAfterLast(".") + "#" + it.methodName
+            }
+        } else {
+            getCallerClassName()
+        } ?: ""
+    }
+
+    /**
+     * Gives caller class name. Based on this : https://stackoverflow.com/a/11306854/3119031
+     *
+     * @return Caller class name
+     */
+    private fun getCallerClassName() = getCaller()?.className?.substringAfterLast(".")
+
+    /**
+     * Gives caller. Based on this : https://stackoverflow.com/a/11306854/3119031
+     *
+     * @return Caller class name
+     */
+    private fun getCaller(): StackTraceElement? = Thread.currentThread().stackTrace.firstOrNull {
+        it.className != Logger::class.java.name
+                && it.className != Thread::class.java.name
+                && it.className != "dalvik.system.VMStack"
     }
 }
