@@ -6,6 +6,7 @@ import sssemil.com.p2p.dht.api.*
 import sssemil.com.p2p.dht.api.model.Ping
 import sssemil.com.p2p.dht.api.model.Pong
 import sssemil.com.p2p.dht.util.ActiveList
+import sssemil.com.p2p.dht.util.KeyPair
 import sssemil.com.p2p.dht.util.Logger
 import sssemil.com.p2p.dht.util.isAlive
 import java.io.DataInputStream
@@ -14,7 +15,7 @@ import java.net.ConnectException
 import java.net.InetAddress
 import java.net.Socket
 
-class Client(private val serverAddress: InetAddress, val serverPort: Int) {
+class Client(private val serverAddress: InetAddress, val serverPort: Int, val keyPair: KeyPair) {
     private lateinit var clientSocket: Socket
     private lateinit var outToServer: DataOutputStream
     private lateinit var inFromServer: DataInputStream
@@ -53,9 +54,9 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
         if (!clientSocket.isAlive) throw RuntimeException("Connection closed!")
 
         val ping = Ping(localPeerId, port)
-        val dhtObj = DhtObj(OBJ_PING, ping)
+        val dhtObj = DhtObj(ping)
 
-        outToServer.write(dhtObj.generate())
+        outToServer.write(dhtObj.generate(byteArrayOf()))
         outToServer.flush()
 
         return@async responses.waitFor({
@@ -83,7 +84,7 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
                 responses.add(dhtFailure)
             }
             DHT_OBJ -> {
-                val dhtObj = DhtObj.parse(inFromServer)
+                val dhtObj = DhtObj.parse(inFromServer, keyPair)
 
                 Logger.i("[${clientSocket.inetAddress}][DHT_OBJ] DhtObj: $dhtObj")
 
@@ -105,9 +106,13 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int) {
         }
     }
 
-    fun send(dhtMessage: DhtMessage) {
-        outToServer.write(dhtMessage.generate())
+    fun send(data: ByteArray) {
+        outToServer.write(data)
         outToServer.flush()
+    }
+
+    fun send(dhtMessage: DhtMessage) {
+        send(dhtMessage.generate(byteArrayOf()))
     }
 
     fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {

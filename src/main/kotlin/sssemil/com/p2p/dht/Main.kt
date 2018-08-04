@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
         val server = Server()
         server.start().await()
 
-        val selfClient = Client(InetAddress.getLocalHost(), server.port)
+        val selfClient = Client(InetAddress.getLocalHost(), server.port, server.peerId)
         selfClient.connect()
 
         Janitor(server, selfClient).start()
@@ -175,12 +175,12 @@ fun ping(parts: List<String>, server: Server) = async {
                 throw NumberFormatException()
             }
 
-            val client = Client(pingIp, pingPort)
+            val client = Client(pingIp, pingPort, server.peerId)
 
             if (!client.connect().await()) {
                 Logger.i("Connection failed!")
             } else {
-                Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(server.peerId, server.port).await()}")
+                Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(server.peerId.publicKey, server.port).await()}")
             }
         } catch (e: NumberFormatException) {
             Logger.e("Invalid port number!")

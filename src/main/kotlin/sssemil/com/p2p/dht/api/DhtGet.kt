@@ -12,7 +12,7 @@ class DhtGet(val key: ByteArray) : DhtMessage {
         }
     }
 
-    override fun generate(): ByteArray {
+    override fun generate(destinationPublicKey: ByteArray): ByteArray {
         val sizeInBytes: Short = (4 + KEY_LENGTH).toShort()
         val byteArray = ByteArray(sizeInBytes.toInt())
         var index = 0

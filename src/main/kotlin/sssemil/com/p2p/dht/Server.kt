@@ -22,10 +22,6 @@ class Server {
 
     val peersStorage = PeerStorage()
 
-    init {
-        if (peerId.size != KEY_LENGTH) throw RuntimeException("Peer ID has to be this long : $KEY_LENGTH!")
-    }
-
     private var serverSocket: ServerSocket? = null
     var port: Int
         get() {
@@ -39,7 +35,7 @@ class Server {
             serverSocket = ServerSocket(value)
         }
 
-    val peerId: ByteArray
+    val peerId: KeyPair
         get() = peersStorage.id
 
     fun start() = async {
@@ -49,7 +45,7 @@ class Server {
 
         Logger.i("Number of workers: $workersNumber")
         Logger.i("Port number: ${serverSocket?.localPort}")
-        Logger.i("ID: ${peerId.toHexString()}")
+        Logger.i("ID: $peerId")
 
         async {
             while (run.get()) {
@@ -82,14 +78,14 @@ class Server {
 
                         val put = Put(dhtPut.ttl.toLong(), dhtPut.replicationsLeft, dhtPut.value)
 
-                        handleObj(socket, outToClient, DhtObj(OBJ_PUT, put))
+                        handleObj(socket, outToClient, DhtObj(put))
                     }
                     DHT_GET -> {
                         val dhtGet = DhtGet.parse(inFromClient)
 
                         Logger.i("[${socket.inetAddress}][DHT_GET] DhtGet: $dhtGet")
 
-                        val distance = IdKeyUtils.distance(dhtGet.key, peerId)
+                        val distance = IdKeyUtils.distance(dhtGet.key, peerId.publicKey)
 
                         if (distance < TOLERANCE) {
                             Logger.i("Looking for the key-value in local storage!")
@@ -103,9 +99,9 @@ class Server {
                         val sentTo = HashSet<String>()
 
                         peersStorage.findClosest(dhtGet.key, sentTo).forEach { it ->
-                            val client = Client(it.peer.ip, it.peer.port)
+                            val client = Client(it.peer.ip, it.peer.port, peerId)
                             if (client.connect().await()) {
-                                val response = client.send(DhtObj(OBJ_FIND_VALUE, FindValue(dhtGet.key)), DEFAULT_DELAY).await()
+                                val response = client.send(DhtObj(FindValue(dhtGet.key)), DEFAULT_DELAY).await()
 
                                 if (response != null && response is DhtObj) {
                                     when (response.code) {
@@ -125,12 +121,12 @@ class Server {
                                             val foundPeers = response.obj as FoundPeers
 
                                             foundPeers.peers.forEach {
-                                                val testClient = Client(it.ip, it.port)
+                                                val testClient = Client(it.ip, it.port, peerId)
 
                                                 if (!testClient.connect().await()) {
                                                     Logger.e("Connection failed to $it!")
                                                 } else {
-                                                    val pong = testClient.ping(peerId, socket.localPort).await() as DhtObj?
+                                                    val pong = testClient.ping(peerId.publicKey, socket.localPort).await() as DhtObj?
                                                     Logger.i("ping ${it.ip.hostAddress} ${it.port} : $pong")
 
                                                     pong?.let { pongObj ->
@@ -145,7 +141,7 @@ class Server {
 
                                                         if (valid) {
                                                             Logger.i("Adding new peer: $it")
-                                                            peersStorage.add(it, peerId)
+                                                            peersStorage.add(it, peerId.publicKey)
                                                         }
                                                     }
                                                 }
@@ -162,7 +158,7 @@ class Server {
                         sendFailure(outToClient, dhtGet.key)
                     }
                     DHT_OBJ -> {
-                        val dhtObj = DhtObj.parse(inFromClient)
+                        val dhtObj = DhtObj.parse(inFromClient, peerId)
 
                         Logger.i("[${socket.inetAddress}][DHT_OBJ] DhtObj: $dhtObj")
 
@@ -189,16 +185,16 @@ class Server {
 
                 Logger.i("[${socket.inetAddress}][OBJ_PING] $ping")
 
-                val pong = Pong(peerId, socket.localPort)
+                val pong = Pong(peerId.publicKey, socket.localPort)
                 pong.token = ping.token
 
                 Logger.i("[OBJ_PONG] sending: pong: $pong")
 
-                val reply = DhtObj(OBJ_PONG, pong).generate()
+                val reply = DhtObj(pong).generate(byteArrayOf())
 
                 outToClient.write(reply)
 
-                peersStorage.add(Peer(ping.peerId, socket.inetAddress, ping.port), peerId)
+                peersStorage.add(Peer(ping.peerId, socket.inetAddress, ping.port), peerId.publicKey)
             }
             OBJ_PUT -> {
                 val put = dhtObj.obj as Put
@@ -209,7 +205,7 @@ class Server {
                     Logger.i("Ignore key, we have it : ${put.key}")
                 }
 
-                val distance = IdKeyUtils.distance(put.key, peerId)
+                val distance = IdKeyUtils.distance(put.key, peerId.publicKey)
 
                 Logger.i("Distance to key: $distance")
 
@@ -228,11 +224,11 @@ class Server {
 
                     closest.forEach { it ->
                         if (put.replicationsLeft > 0) {
-                            val client = Client(it.peer.ip, it.peer.port)
+                            val client = Client(it.peer.ip, it.peer.port, peerId)
 
                             if (client.connect().await()) {
                                 put.replicationsLeft--
-                                client.send(DhtObj(OBJ_PUT, put), { true }, 0)
+                                client.send(DhtObj(put).generate(it.peer.id))
                                 sentTo.add(it.peer.id.toHexString())
                             }
                         }
@@ -245,13 +241,13 @@ class Server {
             }
             OBJ_FIND_VALUE -> {
                 val findValue = dhtObj.obj as FindValue
-                val distance = IdKeyUtils.distance(findValue.key, peerId)
+                val distance = IdKeyUtils.distance(findValue.key, peerId.publicKey)
 
                 if (distance < TOLERANCE) {
                     Logger.i("Looking for the key-value in local storage!")
 
                     storage.get(findValue.key)?.let {
-                        outToClient.write(DhtObj(OBJ_FOUND_VALUE, FoundValue(it)).generate())
+                        outToClient.write(DhtObj(FoundValue(it)).generate(byteArrayOf()))
                         outToClient.flush()
                         return@async
                     }
@@ -259,7 +255,7 @@ class Server {
 
                 val closestPeers = peersStorage.findClosest(findValue.key, hashSetOf()).map { it.peer }
 
-                outToClient.write(DhtObj(OBJ_FOUND_PEERS, FoundPeers(closestPeers.toTypedArray())).generate())
+                outToClient.write(DhtObj(FoundPeers(closestPeers.toTypedArray())).generate(byteArrayOf()))
                 outToClient.flush()
 
                 return@async
@@ -272,7 +268,7 @@ class Server {
 
         Logger.i("[DHT_FAILURE] sending: $dhtFailure")
 
-        outToClient.write(dhtFailure.generate())
+        outToClient.write(dhtFailure.generate(byteArrayOf()))
         outToClient.flush()
     }
 
@@ -281,17 +277,17 @@ class Server {
 
         Logger.i("[DHT_SUCCESS] sending: $dhtSuccess")
 
-        outToClient.write(dhtSuccess.generate())
+        outToClient.write(dhtSuccess.generate(byteArrayOf()))
         outToClient.flush()
     }
 
     fun pair(peerIp: InetAddress, peerPort: Int, providedId: ByteArray?) = async {
-        val client = Client(peerIp, peerPort)
+        val client = Client(peerIp, peerPort, peerId)
 
         if (!client.connect().await()) {
             Logger.i("Connection failed!")
         } else {
-            val pong = serverSocket?.localPort?.let { client.ping(peerId, it).await() } as DhtObj?
+            val pong = serverSocket?.localPort?.let { client.ping(peerId.publicKey, it).await() } as DhtObj?
             Logger.i("ping ${peerIp.hostAddress} $peerPort : $pong")
 
             pong?.let {
@@ -308,7 +304,7 @@ class Server {
                 if (valid) {
                     val peer = Peer(factualPeerId, peerIp, peerPort)
                     Logger.i("Adding new peer: $peer")
-                    peersStorage.add(peer, peerId)
+                    peersStorage.add(peer, peerId.publicKey)
                 }
             }
         }

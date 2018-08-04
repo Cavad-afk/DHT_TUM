@@ -1,20 +1,19 @@
 package sssemil.com.p2p.dht.util
 
 import org.apache.commons.codec.digest.DigestUtils
-import sssemil.com.p2p.dht.api.KEY_LENGTH
-import java.util.*
-
+import sssemil.com.p2p.dht.api.RSA_KEY_LENGTH
+import java.security.KeyPairGenerator
 
 /**
- * Use it to generate random IDs for peers.
+ * Use it to generate RSA key pair.
  */
-fun generateId(): ByteArray {
-    val random = Random()
+fun generateKeyPair(): KeyPair {
+    val keyGen: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    keyGen.initialize(RSA_KEY_LENGTH)
+    val pair = keyGen.generateKeyPair()
+            ?: throw RuntimeException("Something went very wrong with key pair generation...")
 
-    val id = ByteArray(KEY_LENGTH)
-    random.nextBytes(id)
-
-    return DigestUtils.md5(id)
+    return KeyPair(pair.private.encoded, pair.public.encoded)
 }
 
 /**

@@ -13,7 +13,7 @@ class DhtFailure(val key: ByteArray) : DhtMessage {
         }
     }
 
-    override fun generate(): ByteArray {
+    override fun generate(destinationPublicKey: ByteArray): ByteArray {
         val sizeInBytes: Short = (4 + KEY_LENGTH).toShort()
         val byteArray = ByteArray(sizeInBytes.toInt())
         var index = 0
@@ -23,7 +23,6 @@ class DhtFailure(val key: ByteArray) : DhtMessage {
         DHT_FAILURE.toBytes().map { byteArray[index++] = it }
 
         key.map { byteArray[index++] = it }
-
 
         return byteArray
     }

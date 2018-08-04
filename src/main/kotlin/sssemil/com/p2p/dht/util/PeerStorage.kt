@@ -5,7 +5,7 @@ import sssemil.com.p2p.dht.api.*
 import java.util.*
 
 class PeerStorage {
-    val id: ByteArray = generateId()
+    val id: KeyPair = generateKeyPair()
 
     val peers = Array(KEY_LENGTH * 8) { SortedList<PeerHolder>(BUCKETS) }
 
@@ -32,13 +32,13 @@ class PeerStorage {
     }
 
     fun contains(peerId: ByteArray): Boolean {
-        val distance = IdKeyUtils.distance(id, peerId)
+        val distance = IdKeyUtils.distance(id.publicKey, peerId)
 
         return peers[distance].any { it.id.contentEquals(peerId) }
     }
 
     override fun toString(): String {
-        return "PeerStorage(id=${id.toHexString()}, peers=${peers.joinToString("") {
+        return "PeerStorage(id=$id, peers=${peers.joinToString("") {
             if (it.isNotEmpty()) it.joinToString("", postfix = ";") else ""
         }})"
     }
