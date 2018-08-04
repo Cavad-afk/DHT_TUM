@@ -17,7 +17,7 @@ internal const val OBJ_FOUND_PEERS = 6
 
 internal const val RSA_KEY_LENGTH = 4096 // bits
 internal const val KEY_LENGTH = 128 / 8 // bytes (md5 size)
-internal const val TOLERANCE = 64 * 8 // distance tolerance, decrease it in larger networks
+internal const val TOLERANCE = 16 * 8 // distance tolerance, decrease it in larger networks
 internal const val BUCKETS = 20
 internal const val GRAB_SIZE = 3
 

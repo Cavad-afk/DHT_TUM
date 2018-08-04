@@ -1,7 +1,6 @@
 package sssemil.com.p2p.dht
 
 import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.delay
 import sssemil.com.p2p.dht.api.*
 import sssemil.com.p2p.dht.api.model.Ping
 import sssemil.com.p2p.dht.api.model.Pong
@@ -11,43 +10,55 @@ import sssemil.com.p2p.dht.util.Logger
 import sssemil.com.p2p.dht.util.isAlive
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.lang.Thread.sleep
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.Socket
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
 
 class Client(private val serverAddress: InetAddress, val serverPort: Int, val keyPair: KeyPair) {
     private lateinit var clientSocket: Socket
     private lateinit var outToServer: DataOutputStream
     private lateinit var inFromServer: DataInputStream
 
+    private val run = AtomicBoolean(true)
+
     private val responses = ActiveList<DhtMessage>()
 
-    private fun setupConnection() = async {
+    private fun setupConnection(): Boolean {
         try {
             clientSocket = Socket(serverAddress, serverPort)
             outToServer = DataOutputStream(clientSocket.getOutputStream())
             inFromServer = DataInputStream(clientSocket.getInputStream())
 
-            monitor()
+            thread {
+                monitor()
+            }
 
-            return@async true
+            return true
         } catch (e: ConnectException) {
             Logger.e(e.localizedMessage)
         }
 
-        return@async false
+        return false
     }
 
-    private fun monitor() = async {
-        while (clientSocket.isAlive) {
+    private fun monitor() {
+        while (clientSocket.isAlive && run.get()) {
             if (inFromServer.available() > 0) {
                 seekResponse()
             }
 
-            delay(10)
+            sleep(10)
         }
 
         Logger.w("Socket closed!")
+    }
+
+    fun stop() {
+        run.set(false)
+        sleep(150)
     }
 
     fun ping(localPeerId: ByteArray, port: Int) = async {
@@ -96,13 +107,13 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, val ke
         }
     }
 
-    fun connect() = async {
-        if (setupConnection().await()) {
-            Logger.i("CLIENT: Setup connection: complete!")
-            return@async true
+    fun connect(): Boolean {
+        return if (setupConnection()) {
+            Logger.i("[CLIENT] Setup connection: complete!")
+            true
         } else {
-            Logger.e("CLIENT: Setup connection: failed!")
-            return@async false
+            Logger.e("[CLIENT] Setup connection: failed!")
+            false
         }
     }
 
@@ -115,10 +126,10 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, val ke
         send(dhtMessage.generate(byteArrayOf()))
     }
 
-    fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int) = async {
+    suspend fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int): DhtMessage? {
         send(dhtMessage)
-        return@async responses.waitFor(filter, maxDelay).await()
+        return responses.waitFor(filter, maxDelay).await()
     }
 
-    fun send(dhtObj: DhtObj, maxDelay: Int) = send(dhtObj, { it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay)
+    suspend fun send(dhtObj: DhtObj, maxDelay: Int) = send(dhtObj, { it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay)
 }

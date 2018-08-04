@@ -18,12 +18,12 @@ class TestServer {
     fun testPing() {
         runBlocking {
             val server = Server()
-            server.start().await()
+            server.start()
 
             println("ServerID: ${server.peerId}")
 
             val client = Client(InetAddress.getLoopbackAddress(), server.port, server.peerId)
-            client.connect().await()
+            client.connect()
 
             val mockKeyPair = generateKeyPair()
 
@@ -45,8 +45,8 @@ class TestServer {
             val server0 = Server()
             val server1 = Server()
 
-            server0.start().await()
-            server1.start().await()
+            server0.start()
+            server1.start()
 
             server0.pair(InetAddress.getLoopbackAddress(), server1.port, null).await()
 
@@ -65,16 +65,18 @@ class TestServer {
     @Test
     fun testSave() {
         runBlocking {
-            val server0 = Server()
-            val server1 = Server()
+            val servers = Array(8) {
+                val server = Server()
+                server.start()
+                server
+            }
 
-            server0.start().await()
-            server1.start().await()
+            for (i in (1 until servers.size - 1)) {
+                servers[i].pair(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId.publicKey)
+            }
 
-            server0.pair(InetAddress.getLoopbackAddress(), server1.port, server1.peerId.publicKey).await()
-
-            val client = Client(InetAddress.getLoopbackAddress(), server0.port, server0.peerId)
-            client.connect().await()
+            val client = Client(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId)
+            client.connect()
 
             val testValue = ByteArray(500)
             Random().nextBytes(testValue)
@@ -82,9 +84,18 @@ class TestServer {
 
             putArray(testValue, client)
 
-            delay(2000)
+            client.stop()
 
-            val response = getValue(testKey, client).await()
+            delay(Janitor.SECOND * 10)
+
+            servers[0].pair(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId.publicKey)
+
+            val client0 = Client(InetAddress.getLoopbackAddress(), servers[0].port, servers[0].peerId)
+            client0.connect()
+
+            val response = getValue(testKey, client0)
+
+            client0.stop()
 
             assert(response is DhtSuccess)
             response as DhtSuccess

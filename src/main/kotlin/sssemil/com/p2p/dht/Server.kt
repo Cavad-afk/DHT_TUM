@@ -7,10 +7,12 @@ import sssemil.com.p2p.dht.api.model.*
 import sssemil.com.p2p.dht.util.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.lang.Thread.sleep
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
 
 class Server {
 
@@ -38,7 +40,7 @@ class Server {
     val peerId: KeyPair
         get() = peersStorage.id
 
-    fun start() = async {
+    fun start() {
         run.set(true)
 
         serverSocket = ServerSocket(0)
@@ -47,7 +49,7 @@ class Server {
         Logger.i("Port number: ${serverSocket?.localPort}")
         Logger.i("ID: $peerId")
 
-        async {
+        thread {
             while (run.get()) {
                 serverSocket?.accept()?.let {
                     handleClient(it)
@@ -56,9 +58,9 @@ class Server {
         }
     }
 
-    fun stop() = async {
+    fun stop() {
         run.set(false)
-        delay(150)
+        sleep(150)
     }
 
     private fun handleClient(socket: Socket) = async {
@@ -94,14 +96,16 @@ class Server {
                                 sendSuccess(outToClient, dhtGet.key, it)
                                 return@async
                             }
+
+                            Logger.i("Not found.")
                         }
 
                         val sentTo = HashSet<String>()
 
                         peersStorage.findClosest(dhtGet.key, sentTo).forEach { it ->
                             val client = Client(it.peer.ip, it.peer.port, peerId)
-                            if (client.connect().await()) {
-                                val response = client.send(DhtObj(FindValue(dhtGet.key)), DEFAULT_DELAY).await()
+                            if (client.connect()) {
+                                val response = client.send(DhtObj(FindValue(dhtGet.key)), DEFAULT_DELAY)
 
                                 if (response != null && response is DhtObj) {
                                     when (response.code) {
@@ -123,7 +127,7 @@ class Server {
                                             foundPeers.peers.forEach {
                                                 val testClient = Client(it.ip, it.port, peerId)
 
-                                                if (!testClient.connect().await()) {
+                                                if (!testClient.connect()) {
                                                     Logger.e("Connection failed to $it!")
                                                 } else {
                                                     val pong = testClient.ping(peerId.publicKey, socket.localPort).await() as DhtObj?
@@ -145,6 +149,8 @@ class Server {
                                                         }
                                                     }
                                                 }
+
+                                                testClient.stop()
                                             }
                                         }
                                         else -> {
@@ -153,6 +159,8 @@ class Server {
                                     }
                                 }
                             }
+
+                            client.stop()
                         }
 
                         sendFailure(outToClient, dhtGet.key)
@@ -226,11 +234,13 @@ class Server {
                         if (put.replicationsLeft > 0) {
                             val client = Client(it.peer.ip, it.peer.port, peerId)
 
-                            if (client.connect().await()) {
+                            if (client.connect()) {
                                 put.replicationsLeft--
                                 client.send(DhtObj(put).generate(it.peer.id))
                                 sentTo.add(it.peer.id.toHexString())
                             }
+
+                            client.stop()
                         }
                     }
 
@@ -284,7 +294,7 @@ class Server {
     fun pair(peerIp: InetAddress, peerPort: Int, providedId: ByteArray?) = async {
         val client = Client(peerIp, peerPort, peerId)
 
-        if (!client.connect().await()) {
+        if (!client.connect()) {
             Logger.i("Connection failed!")
         } else {
             val pong = serverSocket?.localPort?.let { client.ping(peerId.publicKey, it).await() } as DhtObj?
@@ -308,5 +318,7 @@ class Server {
                 }
             }
         }
+
+        client.stop()
     }
 }

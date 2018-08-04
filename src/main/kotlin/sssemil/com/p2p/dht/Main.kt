@@ -22,11 +22,9 @@ fun main(args: Array<String>) {
         Scanner(System.`in`)
     }
 
-    val random = Random()
-
     runBlocking {
         val server = Server()
-        server.start().await()
+        server.start()
 
         val selfClient = Client(InetAddress.getLocalHost(), server.port, server.peerId)
         selfClient.connect()
@@ -82,14 +80,14 @@ fun port(parts: List<String>, server: Server) = async {
             val newPort = parts[1].toInt()
 
             server.port = newPort
-            server.stop().await()
-            server.start().await()
+            server.stop()
+            server.start()
         } catch (e: NumberFormatException) {
             Logger.e(e.localizedMessage)
             printPortHelp()
         }
     } else {
-        Logger.i("Current port: $server.port")
+        Logger.i("Current port: ${server.port}")
     }
 }
 
@@ -107,14 +105,14 @@ fun get(parts: List<String>, selfClient: Client) = async {
     }
 }
 
-fun getValue(key: ByteArray, selfClient: Client) = async {
+suspend fun getValue(key: ByteArray, selfClient: Client): DhtMessage? {
     val dhtGet = DhtGet(key)
 
-    return@async selfClient.send(dhtGet,
+    return selfClient.send(dhtGet,
             {
                 it is DhtSuccess || it is DhtFailure
             },
-            DEFAULT_DELAY).await()
+            DEFAULT_DELAY)
 }
 
 fun put(parts: List<String>, client: Client) {
@@ -177,11 +175,13 @@ fun ping(parts: List<String>, server: Server) = async {
 
             val client = Client(pingIp, pingPort, server.peerId)
 
-            if (!client.connect().await()) {
+            if (!client.connect()) {
                 Logger.i("Connection failed!")
             } else {
                 Logger.i("ping ${pingIp.hostAddress} $pingPort : ${client.ping(server.peerId.publicKey, server.port).await()}")
             }
+
+            client.stop()
         } catch (e: NumberFormatException) {
             Logger.e("Invalid port number!")
         } catch (e: UnknownHostException) {
