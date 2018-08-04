@@ -1,6 +1,7 @@
 package sssemil.com.p2p.dht.api
 
 import sssemil.com.p2p.dht.util.toBytes
+import sssemil.com.p2p.dht.util.toHexString
 import java.io.DataInputStream
 import java.util.*
 
@@ -54,6 +55,10 @@ class DhtPut(val ttl: Short, val replicationsLeft: Byte, val key: ByteArray, val
         result = 31 * result + Arrays.hashCode(key)
         result = 31 * result + Arrays.hashCode(value)
         return result
+    }
+
+    override fun toString(): String {
+        return "DhtPut(ttl=$ttl, replicationsLeft=$replicationsLeft, key=${key.toHexString()}, value=${value.toHexString()})"
     }
 
     companion object {

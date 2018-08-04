@@ -18,4 +18,8 @@ data class FoundPeers(val peers: Array<Peer>) : TokenModel() {
     override fun hashCode(): Int {
         return Arrays.hashCode(peers)
     }
+
+    override fun toString(): String {
+        return "FoundPeers(peers=${Arrays.toString(peers)})"
+    }
 }

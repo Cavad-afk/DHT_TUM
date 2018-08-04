@@ -1,6 +1,7 @@
 package sssemil.com.p2p.dht.api.model
 
 import sssemil.com.p2p.dht.util.generateKey
+import sssemil.com.p2p.dht.util.toHexString
 import java.util.*
 
 data class Put(val ttl: Long, var replicationsLeft: Byte, val value: ByteArray) : TokenModel() {
@@ -25,5 +26,9 @@ data class Put(val ttl: Long, var replicationsLeft: Byte, val value: ByteArray) 
         result = 31 * result + replicationsLeft
         result = 31 * result + Arrays.hashCode(value)
         return result
+    }
+
+    override fun toString(): String {
+        return "Put(ttl=$ttl, replicationsLeft=$replicationsLeft, value=${value.toHexString()})"
     }
 }

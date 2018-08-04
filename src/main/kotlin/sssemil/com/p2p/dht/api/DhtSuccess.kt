@@ -1,6 +1,7 @@
 package sssemil.com.p2p.dht.api
 
 import sssemil.com.p2p.dht.util.toBytes
+import sssemil.com.p2p.dht.util.toHexString
 import java.io.DataInputStream
 import java.util.*
 
@@ -44,6 +45,10 @@ class DhtSuccess(val key: ByteArray, val value: ByteArray) : DhtMessage {
         var result = Arrays.hashCode(key)
         result = 31 * result + Arrays.hashCode(value)
         return result
+    }
+
+    override fun toString(): String {
+        return "DhtSuccess(key=${key.toHexString()}, value=${value.toHexString()})"
     }
 
     companion object {

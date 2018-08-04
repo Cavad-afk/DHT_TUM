@@ -1,5 +1,6 @@
 package sssemil.com.p2p.dht.api.model
 
+import sssemil.com.p2p.dht.util.toHexString
 import java.util.*
 
 data class FoundValue(val value: ByteArray) : TokenModel() {
@@ -16,5 +17,9 @@ data class FoundValue(val value: ByteArray) : TokenModel() {
 
     override fun hashCode(): Int {
         return Arrays.hashCode(value)
+    }
+
+    override fun toString(): String {
+        return "FoundValue(value=${value.toHexString()})"
     }
 }

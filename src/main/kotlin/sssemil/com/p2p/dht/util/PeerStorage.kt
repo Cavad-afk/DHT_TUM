@@ -36,4 +36,10 @@ class PeerStorage {
 
         return peers[distance].any { it.id.contentEquals(peerId) }
     }
+
+    override fun toString(): String {
+        return "PeerStorage(id=${id.toHexString()}, peers=${peers.joinToString("") {
+            if (it.isNotEmpty()) it.joinToString("", postfix = ";") else ""
+        }})"
+    }
 }

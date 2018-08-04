@@ -27,6 +27,10 @@ data class DhtObj(val code: Int, val obj: TokenModel) : DhtMessage {
         return byteArray
     }
 
+    override fun toString(): String {
+        return "DhtObj(code=$code, obj=$obj)"
+    }
+
     companion object {
         fun parse(dataInputStream: DataInputStream): DhtObj {
             val gson = Gson()

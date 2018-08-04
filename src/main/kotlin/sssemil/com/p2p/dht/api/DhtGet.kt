@@ -1,6 +1,7 @@
 package sssemil.com.p2p.dht.api
 
 import sssemil.com.p2p.dht.util.toBytes
+import sssemil.com.p2p.dht.util.toHexString
 import java.io.DataInputStream
 
 class DhtGet(val key: ByteArray) : DhtMessage {
@@ -23,6 +24,10 @@ class DhtGet(val key: ByteArray) : DhtMessage {
         key.map { byteArray[index++] = it }
 
         return byteArray
+    }
+
+    override fun toString(): String {
+        return "DhtGet(key=${key.toHexString()})"
     }
 
     companion object {
