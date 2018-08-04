@@ -10,27 +10,30 @@ class TestStorage {
 
     @Test
     fun testSaving() {
+        val storage = Storage()
+
         val value = generateId()
         val key = generateKey(value)
 
-        Storage.store(key, value, Janitor.MINUTE)
+        storage.store(key, value, Janitor.MINUTE)
 
-        val savedValue = Storage.get(key)
+        val savedValue = storage.get(key)
 
         assertArrayEquals(value, savedValue)
     }
 
     @Test
     fun testSavingTime() {
+        val storage = Storage()
         val value = generateId()
         val key = generateKey(value)
         val delay = Janitor.SECOND
 
-        Storage.store(key, value, delay)
+        storage.store(key, value, delay)
 
-        Thread.sleep(delay)
+        Thread.sleep(delay + Janitor.SECOND)
 
-        val savedValue = Storage.get(key)
+        val savedValue = storage.get(key)
 
         assertNull(savedValue)
     }
