@@ -99,13 +99,7 @@ fun get(parts: List<String>, selfClient: Client) = async {
 
         Logger.i("FindValue key: $key. Searching...")
 
-        val dhtGet = DhtGet(Base64.getDecoder().decode(key))
-
-        val response = selfClient.send(dhtGet,
-                {
-                    it is DhtSuccess || it is DhtFailure
-                },
-                DEFAULT_DELAY).await()
+        val response = getValue(key.hexStringToByteArray(), selfClient)
 
         Logger.i("FindValue response: $response")
     } else {
@@ -113,18 +107,32 @@ fun get(parts: List<String>, selfClient: Client) = async {
     }
 }
 
+fun getValue(key: ByteArray, selfClient: Client) = async {
+    val dhtGet = DhtGet(key)
+
+    return@async selfClient.send(dhtGet,
+            {
+                it is DhtSuccess || it is DhtFailure
+            },
+            DEFAULT_DELAY).await()
+}
+
 fun put(parts: List<String>, client: Client) {
     if (parts.size > 1) {
         val value = parts.joinToString(" ").toByteArray()
-        val key = generateKey(value)
-
-        Logger.i("Here is your key: ${key.toHexString()}. Attempting saving.")
-
-        val dhtPut = DhtPut(DEFAULT_TTL, DEFAULT_REPLICATION, key, value)
-        client.send(dhtPut)
+        putArray(value, client)
     } else {
         printPutHelp()
     }
+}
+
+fun putArray(value: ByteArray, client: Client) {
+    val key = generateKey(value)
+
+    Logger.i("Here is your key: ${key.toHexString()}. Attempting saving.")
+
+    val dhtPut = DhtPut(DEFAULT_TTL, DEFAULT_REPLICATION, key, value)
+    client.send(dhtPut)
 }
 
 fun addPeer(parts: List<String>, server: Server) = async {
@@ -133,7 +141,7 @@ fun addPeer(parts: List<String>, server: Server) = async {
             val peerIp = InetAddress.getByName(parts[1])
             val peerPort = parts[2].toInt()
 
-            if (peerPort < 2000 || peerPort > 2100) {
+            if (peerPort < 0 || peerPort > 65535) {
                 throw NumberFormatException()
             }
 
