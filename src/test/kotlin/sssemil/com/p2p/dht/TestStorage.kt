@@ -3,8 +3,8 @@ package sssemil.com.p2p.dht
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import sssemil.com.p2p.dht.util.generateId
 import sssemil.com.p2p.dht.util.generateKey
+import sssemil.com.p2p.dht.util.generateKeyPair
 
 class TestStorage {
 
@@ -12,7 +12,7 @@ class TestStorage {
     fun testSaving() {
         val storage = Storage()
 
-        val value = generateId()
+        val value = generateKeyPair().publicKey
         val key = generateKey(value)
 
         storage.store(key, value, Janitor.MINUTE)
@@ -25,7 +25,7 @@ class TestStorage {
     @Test
     fun testSavingTime() {
         val storage = Storage()
-        val value = generateId()
+        val value = generateKeyPair().publicKey
         val key = generateKey(value)
         val delay = Janitor.SECOND
 
