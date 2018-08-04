@@ -15,9 +15,9 @@ class Janitor(private val server: Server, private val client: Client) {
     fun start() = async {
         delay(MINUTE)
 
-        Storage.cleanup()
+        server.storage.cleanup()
 
-        val all = Storage.getAll()
+        val all = server.storage.getAll()
 
         Logger.i("[JANITOR] Resending all data.")
 

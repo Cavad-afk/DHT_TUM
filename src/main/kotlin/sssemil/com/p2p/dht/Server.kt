@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class Server {
 
+    internal val storage = Storage()
+
     private val run = AtomicBoolean(true)
 
     private var workersNumber = Runtime.getRuntime().availableProcessors()
@@ -92,7 +94,7 @@ class Server {
                         if (distance < TOLERANCE) {
                             Logger.i("Looking for the key-value in local storage!")
 
-                            Storage.get(dhtGet.key)?.let {
+                            storage.get(dhtGet.key)?.let {
                                 sendSuccess(outToClient, dhtGet.key, it)
                                 return@async
                             }
@@ -203,7 +205,7 @@ class Server {
 
                 Logger.i("[${socket.inetAddress}][OBJ_PUT] $put")
 
-                if (Storage.contains(put.key)) {
+                if (storage.contains(put.key)) {
                     Logger.i("Ignore key, we have it : ${put.key}")
                 }
 
@@ -214,7 +216,7 @@ class Server {
                 if (distance < TOLERANCE) {
                     Logger.i("Storing the key-value!")
 
-                    Storage.store(put.key, put.value, put.ttl)
+                    storage.store(put.key, put.value, put.ttl)
 
                     put.replicationsLeft--
                 }
@@ -248,7 +250,7 @@ class Server {
                 if (distance < TOLERANCE) {
                     Logger.i("Looking for the key-value in local storage!")
 
-                    Storage.get(findValue.key)?.let {
+                    storage.get(findValue.key)?.let {
                         outToClient.write(DhtObj(OBJ_FOUND_VALUE, FoundValue(it)).generate())
                         outToClient.flush()
                         return@async

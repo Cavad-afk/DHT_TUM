@@ -6,6 +6,44 @@ import java.util.*
 
 class Storage {
 
+    private val hashMap = HashMap<ByteArray, Entry>()
+
+    fun store(key: ByteArray, value: ByteArray, ttl: Long) {
+        synchronized(hashMap) {
+            hashMap[key] = Entry(value, ttl, System.currentTimeMillis())
+        }
+    }
+
+    fun contains(key: ByteArray): Boolean {
+        synchronized(hashMap) {
+            return hashMap.contains(key)
+        }
+    }
+
+    fun get(key: ByteArray): ByteArray? {
+        cleanup()
+
+        synchronized(hashMap) {
+            return if (contains(key)) {
+                hashMap[key]?.value
+            } else null
+        }
+    }
+
+    fun cleanup() {
+        synchronized(hashMap) {
+            val keys = hashMap.keys.toList()
+            keys.forEach { key ->
+                if (hashMap[key]?.isOutdated() == true) {
+                    hashMap.remove(key)
+                    Logger.d("[STORAGE] Removing outdated item: ${key.toHexString()}")
+                }
+            }
+        }
+    }
+
+    fun getAll() = hashMap
+
     data class Entry(val value: ByteArray, val ttl: Long, val arrivedAt: Long) {
         fun isOutdated() = System.currentTimeMillis() - arrivedAt > ttl
 
@@ -28,45 +66,5 @@ class Storage {
             result = 31 * result + arrivedAt.hashCode()
             return result
         }
-    }
-
-    companion object {
-        private val hashMap = HashMap<ByteArray, Entry>()
-
-        fun store(key: ByteArray, value: ByteArray, ttl: Long) {
-            synchronized(hashMap) {
-                hashMap[key] = Entry(value, ttl, System.currentTimeMillis())
-            }
-        }
-
-        fun contains(key: ByteArray): Boolean {
-            synchronized(hashMap) {
-                return hashMap.contains(key)
-            }
-        }
-
-        fun get(key: ByteArray): ByteArray? {
-            cleanup()
-
-            synchronized(hashMap) {
-                return if (contains(key)) {
-                    hashMap[key]?.value
-                } else null
-            }
-        }
-
-        fun cleanup() {
-            synchronized(hashMap) {
-                val keys = hashMap.keys.toList()
-                keys.forEach { key ->
-                    if (hashMap[key]?.isOutdated() == true) {
-                        hashMap.remove(key)
-                        Logger.d("[STORAGE] Removing outdated item: ${key.toHexString()}")
-                    }
-                }
-            }
-        }
-
-        fun getAll() = hashMap
     }
 }
