@@ -21,7 +21,7 @@ class ActiveList<T> : List<T> {
         }
     }
 
-    fun waitFor(filter: (T) -> Boolean, maxDelay: Int) = async {
+    fun waitFor(filter: (T) -> Boolean, maxDelay: Long) = async {
         val startTime = System.currentTimeMillis()
 
         var gotIt: T? = null

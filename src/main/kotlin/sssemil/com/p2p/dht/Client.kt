@@ -17,7 +17,7 @@ import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
-class Client(private val serverAddress: InetAddress, val serverPort: Int, val keyPair: KeyPair) {
+class Client(private val serverAddress: InetAddress, val serverPort: Int, private val localKeyPair: KeyPair) {
     private lateinit var clientSocket: Socket
     private lateinit var outToServer: DataOutputStream
     private lateinit var inFromServer: DataInputStream
@@ -95,7 +95,7 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, val ke
                 responses.add(dhtFailure)
             }
             DHT_OBJ -> {
-                val dhtObj = DhtObj.parse(inFromServer, keyPair)
+                val dhtObj = DhtObj.parse(inFromServer, localKeyPair)
 
                 Logger.i("[${clientSocket.inetAddress}][DHT_OBJ] DhtObj: $dhtObj")
 
@@ -109,10 +109,10 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, val ke
 
     fun connect(): Boolean {
         return if (setupConnection()) {
-            Logger.i("[CLIENT] Setup connection: complete!")
+            Logger.d("[CLIENT] Setup connection: complete!")
             true
         } else {
-            Logger.e("[CLIENT] Setup connection: failed!")
+            Logger.e("[CLIENT] Setup connection failed!")
             false
         }
     }
@@ -122,14 +122,14 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, val ke
         outToServer.flush()
     }
 
-    fun send(dhtMessage: DhtMessage) {
-        send(dhtMessage.generate(byteArrayOf()))
+    fun send(dhtMessage: DhtMessage, destinationPublicKey: ByteArray?) {
+        send(dhtMessage.generate(destinationPublicKey))
     }
 
-    suspend fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Int): DhtMessage? {
-        send(dhtMessage)
+    suspend fun send(dhtObj: DhtObj, maxDelay: Long, destinationPublicKey: ByteArray?) = send(dhtObj, { it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay, destinationPublicKey)
+
+    suspend fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Long, destinationPublicKey: ByteArray?): DhtMessage? {
+        send(dhtMessage, destinationPublicKey)
         return responses.waitFor(filter, maxDelay).await()
     }
-
-    suspend fun send(dhtObj: DhtObj, maxDelay: Int) = send(dhtObj, { it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay)
 }

@@ -100,6 +100,10 @@ fun get(parts: List<String>, selfClient: Client) = async {
         val response = getValue(key.hexStringToByteArray(), selfClient)
 
         Logger.i("FindValue response: $response")
+
+        if (response is DhtSuccess) {
+            Logger.i("DhtSuccess: ${String(response.value)}")
+        }
     } else {
         printGetHelp()
     }
@@ -112,12 +116,12 @@ suspend fun getValue(key: ByteArray, selfClient: Client): DhtMessage? {
             {
                 it is DhtSuccess || it is DhtFailure
             },
-            DEFAULT_DELAY)
+            DEFAULT_DELAY, null)
 }
 
 fun put(parts: List<String>, client: Client) {
-    if (parts.size > 1) {
-        val value = parts.joinToString(" ").toByteArray()
+    if (parts.size >= 2) {
+        val value = parts.subList(1, parts.size).joinToString(" ").toByteArray()
         putArray(value, client)
     } else {
         printPutHelp()
@@ -130,7 +134,7 @@ fun putArray(value: ByteArray, client: Client) {
     Logger.i("Here is your key: ${key.toHexString()}. Attempting saving.")
 
     val dhtPut = DhtPut(DEFAULT_TTL, DEFAULT_REPLICATION, key, value)
-    client.send(dhtPut)
+    client.send(dhtPut, null)
 }
 
 fun addPeer(parts: List<String>, server: Server) = async {
