@@ -7,6 +7,7 @@ import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 
 data class KeyPair(val privateKey: ByteArray, val publicKey: ByteArray) {
@@ -35,31 +36,55 @@ data class KeyPair(val privateKey: ByteArray, val publicKey: ByteArray) {
 
     companion object {
 
+        private const val AES_KEY_LENGTH = 16
+
         fun decrypt(privateKeyBytes: ByteArray, data: ByteArray): ByteArray {
-            val cipher = Cipher.getInstance("RSA")
+            val rsaCipher = Cipher.getInstance("RSA")
+            val aesCipher = Cipher.getInstance("AES")
+
             val privateKey = KeyPair.getPrivate(privateKeyBytes)
 
-            cipher.init(Cipher.DECRYPT_MODE, privateKey)
+            val aesKeyCoded = data.sliceArray(0 until 512)
 
-            return cipher.doFinal(data)
+            rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+
+            val aesKeyDecoded = SecretKeySpec(rsaCipher.doFinal(aesKeyCoded), "AES")
+
+            aesCipher.init(Cipher.DECRYPT_MODE, aesKeyDecoded)
+
+            val codedData = data.sliceArray(512 until data.size)
+
+            return aesCipher.doFinal(codedData)
         }
 
         fun encrypt(publicKeyBytes: ByteArray, data: ByteArray): ByteArray {
-            val cipher = Cipher.getInstance("RSA")
+            val rsaCipher = Cipher.getInstance("RSA")
+            val aesCipher = Cipher.getInstance("AES")
+
+            val aesKey = ByteArray(AES_KEY_LENGTH)
+            Random().nextBytes(aesKey)
+
             val publicKey = KeyPair.getPublic(publicKeyBytes)
 
-            cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+            rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey)
 
-            return cipher.doFinal(data)
+            val aesKeyCoded = rsaCipher.doFinal(aesKey)
+            val aesKeyDecoded = SecretKeySpec(aesKey, "AES")
+
+            aesCipher.init(Cipher.ENCRYPT_MODE, aesKeyDecoded)
+
+            val dataCoded = aesCipher.doFinal(data)
+
+            return aesKeyCoded + dataCoded
         }
 
-        fun getPrivate(key: ByteArray): PrivateKey {
+        private fun getPrivate(key: ByteArray): PrivateKey {
             val spec = PKCS8EncodedKeySpec(key)
             val kf = KeyFactory.getInstance("RSA")
             return kf.generatePrivate(spec)
         }
 
-        fun getPublic(key: ByteArray): PublicKey {
+        private fun getPublic(key: ByteArray): PublicKey {
             val spec = X509EncodedKeySpec(key)
             val kf = KeyFactory.getInstance("RSA")
             return kf.generatePublic(spec)
