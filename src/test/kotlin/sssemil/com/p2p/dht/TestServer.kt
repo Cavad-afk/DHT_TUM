@@ -5,12 +5,10 @@ import kotlinx.coroutines.experimental.runBlocking
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Test
 import sssemil.com.p2p.dht.api.DhtObj
-import sssemil.com.p2p.dht.api.DhtSuccess
 import sssemil.com.p2p.dht.api.model.Pong
 import sssemil.com.p2p.dht.util.generateKey
 import sssemil.com.p2p.dht.util.generateKeyPair
 import java.net.InetAddress
-import java.util.*
 
 class TestServer {
 
@@ -65,7 +63,7 @@ class TestServer {
     @Test
     fun testSave() {
         runBlocking {
-            val servers = Array(8) {
+            val servers = Array(3) {
                 val server = Server()
                 server.start()
                 server
@@ -75,34 +73,37 @@ class TestServer {
                 servers[i].pair(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId.publicKey)
             }
 
-            val client = Client(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId)
-            client.connect()
+            val clientM = Client(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId)
+            clientM.connect()
 
-            val testValue = ByteArray(500)
-            Random().nextBytes(testValue)
-            val testKey = generateKey(testValue)
+            val testValue0 = "hi".toByteArray()
+            val testValue1 = "ma nam a jaff".toByteArray()
 
-            putArray(testValue, client)
+            val testKey0 = generateKey(testValue0)
+            val testKey1 = generateKey(testValue1)
 
-            client.stop()
+            putArray(testValue0, clientM)
 
-            delay(Janitor.SECOND * 10)
+            clientM.stop()
 
             servers[0].pair(InetAddress.getLoopbackAddress(), servers[servers.size / 2].port, servers[servers.size / 2].peerId.publicKey)
 
             val client0 = Client(InetAddress.getLoopbackAddress(), servers[0].port, servers[0].peerId)
             client0.connect()
 
-            val response = getValue(testKey, client0)
+            putArray(testValue1, client0)
 
-            client0.stop()
+            delay(Janitor.SECOND * 10)
 
-            assert(response is DhtSuccess)
-            response as DhtSuccess
+            val value0 = servers[0].findValue(testKey0).await()
+            val value1 = servers[0].findValue(testKey1).await()
 
-            assertArrayEquals(testKey, response.key)
+            println("Response0: ${value0?.let { String(it) } ?: "null"}")
+            println("Response1: ${value1?.let { String(it) } ?: "null"}")
 
-            assertArrayEquals(testValue, response.value)
+            assertArrayEquals(testValue1, value1)
+
+            assertArrayEquals(testValue0, value0)
         }
     }
 }

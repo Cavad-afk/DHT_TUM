@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import sssemil.com.p2p.dht.util.generateKey
 import sssemil.com.p2p.dht.util.generateKeyPair
+import sssemil.com.p2p.dht.util.hexStringToByteArray
+import sssemil.com.p2p.dht.util.toHexString
 
 class TestStorage {
 
@@ -17,7 +19,10 @@ class TestStorage {
 
         storage.store(key, value, Janitor.MINUTE)
 
-        val savedValue = storage.get(key)
+        val hexString = key.toHexString()
+        val keyFromHexString = hexString.hexStringToByteArray()
+
+        val savedValue = storage.get(keyFromHexString)
 
         assertArrayEquals(value, savedValue)
     }

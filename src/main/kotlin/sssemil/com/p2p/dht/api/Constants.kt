@@ -23,5 +23,5 @@ internal const val GRAB_SIZE = 3
 
 internal const val DEFAULT_TTL = Janitor.DAY.toShort()
 internal const val DEFAULT_REPLICATION = 5.toByte()
-internal const val DEFAULT_DELAY = 10000 // 5s
-internal const val PING_DELAY = 5000 // 5s
+internal const val DEFAULT_DELAY = Janitor.SECOND * 5 // 5s
+internal const val PING_DELAY = Janitor.SECOND * 5 // 5s
