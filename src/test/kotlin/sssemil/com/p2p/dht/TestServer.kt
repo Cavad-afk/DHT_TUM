@@ -63,7 +63,7 @@ class TestServer {
     @Test
     fun testSave() {
         runBlocking {
-            val servers = Array(3) {
+            val servers = Array(6) {
                 val server = Server()
                 server.start()
                 server

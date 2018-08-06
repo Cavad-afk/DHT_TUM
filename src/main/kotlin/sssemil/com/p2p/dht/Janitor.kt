@@ -13,8 +13,6 @@ import sssemil.com.p2p.dht.util.hexStringToByteArray
  */
 class Janitor(private val server: Server, private val client: Client) {
     fun start() = async {
-        delay(HOUR)
-        //TODO remove hour delay
         delay(MINUTE)
 
         server.storage.cleanup()
