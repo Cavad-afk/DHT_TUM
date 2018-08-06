@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.60'
+    ext.kotlinVersion = '1.2.60'
     ext.junitVersion = "5.0.0"
     ext.junitPlatformVersion = "1.0.0"
 
@@ -8,7 +8,6 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         classpath "org.junit.platform:junit-platform-gradle-plugin:$junitPlatformVersion"
     }
@@ -24,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
     testCompile "org.junit.jupiter:junit-jupiter-api:$junitVersion"
@@ -33,7 +32,7 @@ dependencies {
     runtime "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
     runtime "org.junit.platform:junit-platform-console:$junitPlatformVersion"
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.22.5'
 
     compile 'com.google.code.gson:gson:2.8.4'
@@ -44,7 +43,7 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '18.0'
 }
 
-apply from: "junit5.gradle"
+//apply from: "junit5.gradle"
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
