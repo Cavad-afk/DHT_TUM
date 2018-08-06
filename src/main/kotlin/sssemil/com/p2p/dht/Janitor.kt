@@ -6,12 +6,15 @@ import sssemil.com.p2p.dht.api.DEFAULT_REPLICATION
 import sssemil.com.p2p.dht.api.DhtObj
 import sssemil.com.p2p.dht.api.model.Put
 import sssemil.com.p2p.dht.util.Logger
+import sssemil.com.p2p.dht.util.hexStringToByteArray
 
 /**
  * Janitor performs repeating maintenance tasks.
  */
 class Janitor(private val server: Server, private val client: Client) {
     fun start() = async {
+        delay(HOUR)
+        //TODO remove hour delay
         delay(MINUTE)
 
         server.storage.cleanup()
@@ -20,12 +23,16 @@ class Janitor(private val server: Server, private val client: Client) {
 
         Logger.i("[JANITOR] Resending all data.")
 
-        all.forEach { _, value ->
-            val dhtObj = DhtObj(Put(
-                    value.ttl - (System.currentTimeMillis() - value.arrivedAt),
-                    DEFAULT_REPLICATION, value.value))
-            if ((dhtObj.obj as Put).ttl > 0) {
-                client.send(dhtObj)
+        all.forEach { key, value ->
+            server.peersStorage.findClosest(key.hexStringToByteArray(), hashSetOf()).forEach { dest ->
+                val dhtObj = DhtObj(Put(
+                        value.ttl - (System.currentTimeMillis() - value.arrivedAt),
+                        DEFAULT_REPLICATION, value.value))
+                if ((dhtObj.obj as Put).ttl > 0) {
+                    val destClient = Client(dest.peer.ip, dest.peer.port, server.peersStorage.id)
+                    destClient.connect()
+                    destClient.send(dhtObj, dest.peer.id)
+                }
             }
         }
 
