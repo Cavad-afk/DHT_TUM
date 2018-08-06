@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object Logger {
-    private const val DEBUG = false
+    private const val DEBUG = true
 
     private const val logFileName = "dht.log"
 
