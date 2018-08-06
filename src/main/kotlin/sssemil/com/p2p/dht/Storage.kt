@@ -6,17 +6,17 @@ import java.util.*
 
 class Storage {
 
-    private val hashMap = HashMap<ByteArray, Entry>()
+    private val hashMap = HashMap<String, Entry>()
 
     fun store(key: ByteArray, value: ByteArray, ttl: Long) {
         synchronized(hashMap) {
-            hashMap[key] = Entry(value, ttl, System.currentTimeMillis())
+            hashMap[key.toHexString()] = Entry(value, ttl, System.currentTimeMillis())
         }
     }
 
     fun contains(key: ByteArray): Boolean {
         synchronized(hashMap) {
-            return hashMap.contains(key)
+            return hashMap.containsKey(key.toHexString())
         }
     }
 
@@ -24,8 +24,8 @@ class Storage {
         cleanup()
 
         synchronized(hashMap) {
-            return if (contains(key)) {
-                hashMap[key]?.value
+            return if (hashMap.containsKey(key.toHexString())) {
+                hashMap[key.toHexString()]?.value
             } else null
         }
     }
@@ -36,7 +36,7 @@ class Storage {
             keys.forEach { key ->
                 if (hashMap[key]?.isOutdated() == true) {
                     hashMap.remove(key)
-                    Logger.d("[STORAGE] Removing outdated item: ${key.toHexString()}")
+                    Logger.d("[STORAGE] Removing outdated item: $key")
                 }
             }
         }
