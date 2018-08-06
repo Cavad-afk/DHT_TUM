@@ -22,8 +22,31 @@ class PeerStorage {
         return tmp.list
     }
 
-    fun add(peer: Peer, peerId: ByteArray) {
-        val distance = IdKeyUtils.distance(peer.id, peerId)
+    fun update(peer: Peer) {
+        val distance = IdKeyUtils.distance(peer.id, id.publicKey)
+
+        val sub = peers[distance]
+
+        val peerHolder = sub.firstOrNull { it.id.contentEquals(peer.id) }
+        peerHolder?.lastSeen = System.currentTimeMillis()
+
+        if (peerHolder == null) {
+            add(peer)
+        }
+    }
+
+    fun add(peer: Peer) {
+        if (contains(peer.id)) {
+            Logger.e("Not adding, already have: ${peer.id.toHexString()}")
+            return
+        }
+
+        if (peer.id.contentEquals(id.publicKey)) {
+            Logger.e("Not adding self: ${peer.id.toHexString()}")
+            return
+        }
+
+        val distance = IdKeyUtils.distance(peer.id, id.publicKey)
 
         Logger.i("Add peer $peer at $distance")
 
