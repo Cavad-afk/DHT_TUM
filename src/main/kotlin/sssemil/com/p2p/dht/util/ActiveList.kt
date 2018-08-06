@@ -14,10 +14,19 @@ class ActiveList<T> : List<T> {
         get() = list.size
 
     fun add(element: T) {
+        Logger.d("Add $element")
         list.add(element)
 
         synchronized(listeners) {
             listeners.forEach { it.invoke(element) }
+        }
+    }
+
+    private fun check() {
+        list.forEach { element ->
+            synchronized(listeners) {
+                listeners.forEach { it.invoke(element) }
+            }
         }
     }
 
@@ -27,14 +36,20 @@ class ActiveList<T> : List<T> {
         var gotIt: T? = null
 
         val listener: (T) -> (Unit) = {
+            Logger.d("Received $it")
             if (filter.invoke(it)) {
+                Logger.d("Filter accepted $it")
                 gotIt = it
+            } else {
+                Logger.d("Filter rejected $it")
             }
         }
 
         synchronized(listeners) {
             listeners.add(listener)
         }
+
+        check()
 
         while ((System.currentTimeMillis() - startTime) < maxDelay && gotIt == null) {
             delay(10)
