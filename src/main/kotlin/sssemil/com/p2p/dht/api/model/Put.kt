@@ -29,6 +29,6 @@ data class Put(val ttl: Long, var replicationsLeft: Byte, val value: ByteArray) 
     }
 
     override fun toString(): String {
-        return "Put(ttl=$ttl, replicationsLeft=$replicationsLeft, value=${value.toHexString()})"
+        return "Put(token=$token, ttl=$ttl, replicationsLeft=$replicationsLeft, value=${value.toHexString()})"
     }
 }

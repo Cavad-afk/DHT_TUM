@@ -3,7 +3,7 @@ package sssemil.com.p2p.dht.api.model
 import sssemil.com.p2p.dht.util.toHexString
 import java.util.*
 
-data class FoundValue(val value: ByteArray) : TokenModel() {
+data class FoundValue(var tokenReply: Double, val value: ByteArray) : TokenModel(tokenReply) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -20,6 +20,6 @@ data class FoundValue(val value: ByteArray) : TokenModel() {
     }
 
     override fun toString(): String {
-        return "FoundValue(value=${value.toHexString()})"
+        return "FoundValue(token=$token, value=${value.toHexString()})"
     }
 }

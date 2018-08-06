@@ -23,6 +23,6 @@ data class Ping(val peerId: ByteArray, val port: Int) : TokenModel() {
     }
 
     override fun toString(): String {
-        return "Ping(peerId=${peerId.toHexString()}, port=$port)"
+        return "Ping(token=$token, peerId=${peerId.toHexString()}, port=$port)"
     }
 }

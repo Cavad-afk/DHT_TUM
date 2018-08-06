@@ -3,7 +3,7 @@ package sssemil.com.p2p.dht.api.model
 import sssemil.com.p2p.dht.util.toHexString
 import java.util.*
 
-data class Pong(val peerId: ByteArray, val port: Int) : TokenModel() {
+data class Pong(val tokenReply: Double, val peerId: ByteArray, val port: Int) : TokenModel(tokenReply) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -23,6 +23,6 @@ data class Pong(val peerId: ByteArray, val port: Int) : TokenModel() {
     }
 
     override fun toString(): String {
-        return "Pong(peerId=${peerId.toHexString()}, port=$port)"
+        return "Pong(token=$token, peerId=${peerId.toHexString()}, port=$port)"
     }
 }

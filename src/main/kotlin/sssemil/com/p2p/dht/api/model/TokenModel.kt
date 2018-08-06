@@ -7,7 +7,7 @@ open class TokenModel(var token: Double = Math.random()) {
         fun secure(code: Int) = when (code) {
             OBJ_PING,
             OBJ_PONG -> false
-            else -> true
+            else -> false // TODO for now
         }
 
         fun objectCode(objClass: Class<*>) = when (objClass) {

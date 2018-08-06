@@ -12,6 +12,7 @@ import java.lang.Thread.sleep
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
@@ -68,6 +69,7 @@ class Server {
     }
 
     private fun handleClient(socket: Socket) = async {
+        Logger.d("Handling new client.")
         while (socket.isAlive) {
             val inFromClient = DataInputStream(socket.getInputStream().buffered())
             val outToClient = DataOutputStream(socket.getOutputStream())
@@ -136,7 +138,7 @@ class Server {
             if (client.connect()) {
                 Logger.d("Connected to ${it.peer.id.toHexString()}:${it.peer.port}")
 
-                val response = client.send(DhtObj(FindValue(key)), DEFAULT_DELAY, it.peer.id)
+                val response = client.send(DhtObj(FindValue(peerId.publicKey, key)), DEFAULT_DELAY, it.peer.id)
 
                 Logger.d("Response $response")
 
@@ -189,14 +191,14 @@ class Server {
 
                 Logger.i("[${socket.inetAddress}][OBJ_PING] $ping")
 
-                val pong = Pong(peerId.publicKey, socket.localPort)
-                pong.token = ping.token
+                val pong = Pong(ping.token, peerId.publicKey, socket.localPort)
 
                 Logger.i("[OBJ_PONG] sending: pong: $pong")
 
                 val reply = DhtObj(pong).generate(byteArrayOf())
 
                 outToClient.write(reply)
+                outToClient.flush()
 
                 peersStorage.add(Peer(ping.peerId, socket.inetAddress, ping.port))
             }
@@ -256,18 +258,26 @@ class Server {
                 val distance = IdKeyUtils.distance(findValue.key, peerId.publicKey)
 
                 if (distance < TOLERANCE) {
-                    Logger.i("Looking for the key-value in local storage!")
+                    Logger.d("Looking for the key-value in local storage!")
 
                     storage.get(findValue.key)?.let {
-                        outToClient.write(DhtObj(FoundValue(it)).generate(byteArrayOf()))
+                        outToClient.write(DhtObj(FoundValue(findValue.token, it)).generate(findValue.publicKey))
                         outToClient.flush()
                         return
                     }
+
+                    Logger.d("Not found in local storage!")
                 }
 
+                Logger.d("Preparing closest peers...")
                 val closestPeers = peersStorage.findClosest(findValue.key, hashSetOf()).map { it.peer }
+                Logger.d("Sending these: ${closestPeers.joinToString()}")
 
-                outToClient.write(DhtObj(FoundPeers(closestPeers.toTypedArray())).generate(byteArrayOf()))
+                val foundPeers = DhtObj(FoundPeers(findValue.token, closestPeers.toTypedArray())).generate(findValue.publicKey)
+
+                Logger.d("Like these: $foundPeers")
+
+                outToClient.write(foundPeers)
                 outToClient.flush()
             }
         }

@@ -3,7 +3,6 @@ package sssemil.com.p2p.dht
 import kotlinx.coroutines.experimental.async
 import sssemil.com.p2p.dht.api.*
 import sssemil.com.p2p.dht.api.model.Ping
-import sssemil.com.p2p.dht.api.model.Pong
 import sssemil.com.p2p.dht.util.ActiveList
 import sssemil.com.p2p.dht.util.KeyPair
 import sssemil.com.p2p.dht.util.Logger
@@ -67,12 +66,7 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, privat
         val ping = Ping(localPeerId, port)
         val dhtObj = DhtObj(ping)
 
-        outToServer.write(dhtObj.generate(byteArrayOf()))
-        outToServer.flush()
-
-        return@async responses.waitFor({
-            it is DhtObj && it.obj is Pong && ping.token == it.obj.token
-        }, PING_DELAY).await()
+        return@async send(dhtObj, PING_DELAY, null)
     }
 
     private fun seekResponse() {
@@ -126,7 +120,11 @@ class Client(private val serverAddress: InetAddress, val serverPort: Int, privat
         send(dhtMessage.generate(destinationPublicKey))
     }
 
-    suspend fun send(dhtObj: DhtObj, maxDelay: Long, destinationPublicKey: ByteArray?) = send(dhtObj, { it is DhtObj && it.obj.token == dhtObj.obj.token }, maxDelay, destinationPublicKey)
+    suspend fun send(dhtObj: DhtObj, maxDelay: Long, destinationPublicKey: ByteArray?) = send(dhtObj, {
+        val accept = it is DhtObj && it.obj.token == dhtObj.obj.token
+        Logger.d("Got $it for $dhtObj. Accept: $accept")
+        accept
+    }, maxDelay, destinationPublicKey)
 
     suspend fun send(dhtMessage: DhtMessage, filter: (DhtMessage) -> Boolean, maxDelay: Long, destinationPublicKey: ByteArray?): DhtMessage? {
         send(dhtMessage, destinationPublicKey)
