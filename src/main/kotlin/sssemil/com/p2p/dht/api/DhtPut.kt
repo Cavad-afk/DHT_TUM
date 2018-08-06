@@ -13,7 +13,7 @@ class DhtPut(val ttl: Short, val replicationsLeft: Byte, val key: ByteArray, val
         }
     }
 
-    override fun generate(destinationPublicKey: ByteArray): ByteArray {
+    override fun generate(destinationPublicKey: ByteArray?): ByteArray {
         val sizeInBytes: Short = (8 + KEY_LENGTH + value.size).toShort()
         val byteArray = ByteArray(sizeInBytes.toInt())
         var index = 0

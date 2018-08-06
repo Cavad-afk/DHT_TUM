@@ -11,9 +11,10 @@ data class DhtObj(val obj: TokenModel) : DhtMessage {
 
     val code = TokenModel.objectCode(obj.javaClass)
 
-    override fun generate(destinationPublicKey: ByteArray): ByteArray {
+    override fun generate(destinationPublicKey: ByteArray?): ByteArray {
         val gson = Gson()
         val json = if (TokenModel.secure(code)) {
+            if (destinationPublicKey == null) throw RuntimeException("Public key required for this class!")
             KeyPair.encrypt(destinationPublicKey, gson.toJson(obj).toByteArray())
         } else {
             gson.toJson(obj).toByteArray()
