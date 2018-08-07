@@ -45,7 +45,7 @@ class Storage {
     fun getAll() = hashMap
 
     data class Entry(val value: ByteArray, val ttl: Long, val arrivedAt: Long) {
-        fun isOutdated() = System.currentTimeMillis() - arrivedAt > ttl
+        fun isOutdated() = (System.currentTimeMillis() - arrivedAt) / 1000 > ttl
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
